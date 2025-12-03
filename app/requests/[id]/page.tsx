@@ -245,7 +245,7 @@ export default function RequestDetailsPage() {
                                     <CardContent>
                                         <p className="text-gray-600">
                                             This request is currently {request.status}.
-                                            {request.status !== "open" && " No new offers are being accepted."}
+                                            No new offers are being accepted.
                                         </p>
                                     </CardContent>
                                 </Card>
