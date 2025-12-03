@@ -200,7 +200,7 @@ export default function RequestDetailsPage() {
                                         <CardContent>
                                             <div className="flex justify-between items-center">
                                                 <p className="font-medium text-lg">
-                                                    PKR {offers.find(o => o.sellerId === currentUser._id)?.price}
+                                                    PKR {offers.find(o => o.sellerId === currentUser?._id)?.price}
                                                 </p>
                                                 <Badge className="bg-blue-600">Pending</Badge>
                                             </div>
