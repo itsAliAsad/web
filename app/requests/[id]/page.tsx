@@ -189,7 +189,7 @@ export default function RequestDetailsPage() {
                         <>
                             {/* Seller View */}
                             {request.status === "open" ? (
-                                offers.find(o => o.sellerId === currentUser._id) ? (
+                                offers.find(o => o.sellerId === currentUser?._id) ? (
                                     <Card className="bg-blue-50 border-blue-200">
                                         <CardHeader>
                                             <CardTitle className="text-blue-800">Offer Submitted</CardTitle>
