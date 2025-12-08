@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as maintenance from "../maintenance.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as offers from "../offers.js";
@@ -18,6 +19,7 @@ import type * as requests from "../requests.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
+import type * as utils from "../utils.js";
 
 import type {
   ApiFromModules,
@@ -27,6 +29,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  maintenance: typeof maintenance;
   messages: typeof messages;
   notifications: typeof notifications;
   offers: typeof offers;
@@ -36,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   seed: typeof seed;
   users: typeof users;
+  utils: typeof utils;
 }>;
 
 /**

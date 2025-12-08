@@ -78,8 +78,13 @@ export const seedData = internalMutation({
                     bio: userData.bio,
                     university: userData.university,
                     reputation: 0,
+                    ratingSum: 0,
+                    ratingCount: 0,
                     role: userData.role,
                     isVerified: true,
+                    isAdmin: false,
+                    isBanned: false,
+                    termsAcceptedAt: new Date().toISOString(),
                 });
             }
             userIds.push(userId);

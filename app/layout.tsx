@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import TermsModal from "@/components/trust/TermsModal";
 import { RoleProvider } from "@/context/RoleContext";
 import Navbar from "@/components/layout/Navbar";
+import AnnouncementsBar from "@/components/layout/AnnouncementsBar";
+import BannedBanner from "@/components/layout/BannedBanner";
 
 
 
@@ -27,6 +29,8 @@ export default function RootLayout({
         <ConvexClientProvider>
           <RoleProvider>
             <Navbar />
+            <BannedBanner />
+            <AnnouncementsBar />
             {children}
             <Toaster />
             <TermsModal />

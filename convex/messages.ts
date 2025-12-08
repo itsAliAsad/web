@@ -1,25 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { PaginationResult } from "convex/server";
+import { requireUser } from "./utils";
 
 export const listConversations = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            return [];
-        }
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) {
-            return [];
-        }
+        const user = await requireUser(ctx);
 
         const conversations1 = await ctx.db
             .query("conversations")
@@ -61,21 +48,7 @@ export const listConversations = query({
 export const list = query({
     args: { conversationId: v.id("conversations") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            return [];
-        }
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) {
-            return [];
-        }
+        const user = await requireUser(ctx);
 
         const conversation = await ctx.db.get(args.conversationId);
         if (!conversation) {
@@ -107,17 +80,7 @@ export const send = mutation({
         type: v.union(v.literal("text"), v.literal("image"), v.literal("file")),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx);
 
         let conversationId = args.conversationId;
 
@@ -186,17 +149,7 @@ export const send = mutation({
 export const markRead = mutation({
     args: { conversationId: v.id("conversations") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx);
 
         const messages = await ctx.db
             .query("messages")
@@ -214,17 +167,7 @@ export const markRead = mutation({
 export const getConversation = query({
     args: { conversationId: v.id("conversations") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) return null;
+        const user = await requireUser(ctx);
 
         const conversation = await ctx.db.get(args.conversationId);
         if (!conversation) return null;

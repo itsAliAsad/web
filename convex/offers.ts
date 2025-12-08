@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireUser } from "./utils";
 
 export const create = mutation({
     args: {
@@ -7,21 +8,7 @@ export const create = mutation({
         price: v.number(),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("Unauthenticated call to create offer");
-        }
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) {
-            throw new Error("User not found");
-        }
+        const user = await requireUser(ctx);
 
         // Check if request exists and is open
         const request = await ctx.db.get(args.requestId);
@@ -43,6 +30,7 @@ export const create = mutation({
 
         const offerId = await ctx.db.insert("offers", {
             requestId: args.requestId,
+            buyerId: request.buyerId,
             sellerId: user._id,
             price: args.price,
             status: "pending",
@@ -65,10 +53,21 @@ export const listByRequest = query({
     args: { requestId: v.id("requests") },
     handler: async (ctx, args) => {
         // In a real app, verify the user is the buyer of the request
-        return await ctx.db
+        const offers = await ctx.db
             .query("offers")
             .withIndex("by_request", (q) => q.eq("requestId", args.requestId))
             .collect();
+
+        return await Promise.all(
+            offers.map(async (offer) => {
+                const seller = await ctx.db.get(offer.sellerId);
+                return {
+                    ...offer,
+                    sellerName: seller?.name,
+                    sellerIsVerified: Boolean(seller?.isVerified),
+                };
+            })
+        );
     },
 });
 
@@ -78,23 +77,11 @@ export const accept = mutation({
         requestId: v.id("requests"),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("Unauthenticated call to accept offer");
-        }
+        const user = await requireUser(ctx);
 
         const request = await ctx.db.get(args.requestId);
         if (!request) throw new Error("Request not found");
-
-        // Verify user is the buyer
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user || user._id !== request.buyerId) {
+        if (user._id !== request.buyerId) {
             throw new Error("Unauthorized");
         }
 
@@ -156,17 +143,7 @@ export const accept = mutation({
 export const listMyOffers = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) return [];
+        const user = await requireUser(ctx);
 
         // Note: This requires an index on sellerId if we want to be efficient
         // For now, we can filter or just add the index.
@@ -179,7 +156,7 @@ export const listMyOffers = query({
 
         const offers = await ctx.db
             .query("offers")
-            .filter((q) => q.eq(q.field("sellerId"), user._id))
+            .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
             .collect();
 
         return await Promise.all(
@@ -196,79 +173,41 @@ export const listMyOffers = query({
 export const listBetweenUsers = query({
     args: { otherUserId: v.id("users") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
+        const user = await requireUser(ctx);
 
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
+        const iAmBuyer = await ctx.db
+            .query("offers")
+            .withIndex("by_buyer_and_seller", (q) =>
+                q.eq("buyerId", user._id).eq("sellerId", args.otherUserId)
             )
-            .unique();
-
-        if (!user) return [];
-
-        // Find offers where current user is seller AND other user is buyer (via request)
-        // OR current user is buyer (via request) AND other user is seller
-
-        // This is complex without joins.
-        // Strategy: Get all offers involving the other user as seller.
-        // Then filter for requests owned by me.
-        // AND get all offers involving me as seller.
-        // Then filter for requests owned by other user.
-
-        // 1. Offers where otherUser is seller
-        const offersByOther = await ctx.db
-            .query("offers")
-            .withIndex("by_seller", (q) => q.eq("sellerId", args.otherUserId))
             .collect();
 
-        // 2. Offers where I am seller
-        const offersByMe = await ctx.db
+        const iAmSeller = await ctx.db
             .query("offers")
-            .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
+            .withIndex("by_buyer_and_seller", (q) =>
+                q.eq("buyerId", args.otherUserId).eq("sellerId", user._id)
+            )
             .collect();
 
-        const allOffers = [...offersByOther, ...offersByMe];
-        const results = [];
+        const allOffers = [...iAmBuyer, ...iAmSeller];
 
-        for (const offer of allOffers) {
-            const request = await ctx.db.get(offer.requestId);
-            if (!request) continue;
-
-            // Check if this offer involves both users
-            const isMyRequest = request.buyerId === user._id;
-            const isOtherRequest = request.buyerId === args.otherUserId;
-            const isMyOffer = offer.sellerId === user._id;
-            const isOtherOffer = offer.sellerId === args.otherUserId;
-
-            if ((isMyRequest && isOtherOffer) || (isOtherRequest && isMyOffer)) {
-                results.push({
+        return await Promise.all(
+            allOffers.map(async (offer) => {
+                const request = await ctx.db.get(offer.requestId);
+                return {
                     ...offer,
-                    requestTitle: request.title,
-                    requestDescription: request.description,
-                });
-            }
-        }
-
-        return results;
+                    requestTitle: request?.title,
+                    requestDescription: request?.description,
+                };
+            })
+        );
     },
 });
 
 export const listOffersForBuyer = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) return [];
+        const user = await requireUser(ctx);
 
         // Get all requests by this user
         const requests = await ctx.db

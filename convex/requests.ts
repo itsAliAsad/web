@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireUser } from "./utils";
 
 export const create = mutation({
     args: {
@@ -10,21 +11,7 @@ export const create = mutation({
         category: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("Unauthenticated call to create request");
-        }
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) {
-            throw new Error("User not found");
-        }
+        const user = await requireUser(ctx);
 
         const requestId = await ctx.db.insert("requests", {
             buyerId: user._id,
@@ -43,21 +30,7 @@ export const create = mutation({
 export const listMyRequests = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            return [];
-        }
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) {
-            return [];
-        }
+        const user = await requireUser(ctx);
 
         return await ctx.db
             .query("requests")
@@ -70,22 +43,21 @@ export const listMyRequests = query({
 export const listOpen = query({
     args: { category: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        const q = ctx.db
-            .query("requests")
-            .withIndex("by_status", (q) => q.eq("status", "open"));
-
         if (args.category && args.category !== "all") {
-            // Note: This is client-side filtering on the DB query result stream if we don't have a specific index.
-            // For better performance with many records, we should add an index on ["status", "category"].
-            // For now, we'll filter in memory after fetching or use filter() if possible.
-            // Convex filter() works on the database side.
-            return await q
-                .filter((q) => q.eq(q.field("category"), args.category))
+            return await ctx.db
+                .query("requests")
+                .withIndex("by_status_and_category", (q) =>
+                    q.eq("status", "open").eq("category", args.category)
+                )
                 .order("desc")
                 .collect();
         }
 
-        return await q.order("desc").collect();
+        return await ctx.db
+            .query("requests")
+            .withIndex("by_status", (q) => q.eq("status", "open"))
+            .order("desc")
+            .collect();
     },
 });
 
@@ -99,21 +71,11 @@ export const get = query({
 export const complete = mutation({
     args: { id: v.id("requests") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
+        const user = await requireUser(ctx);
 
         const request = await ctx.db.get(args.id);
         if (!request) throw new Error("Request not found");
-
-        // Verify buyer
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user || user._id !== request.buyerId) throw new Error("Unauthorized");
+        if (user._id !== request.buyerId) throw new Error("Unauthorized");
 
         await ctx.db.patch(args.id, { status: "completed" });
 

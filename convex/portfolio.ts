@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireUser } from "./utils";
 
 // Portfolio Items
 export const addPortfolioItem = mutation({
@@ -10,17 +11,7 @@ export const addPortfolioItem = mutation({
         link: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx);
 
         await ctx.db.insert("portfolio_items", {
             userId: user._id,
@@ -53,17 +44,7 @@ export const addCourse = mutation({
         imageUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx);
 
         await ctx.db.insert("courses", {
             userId: user._id,

@@ -13,10 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 export default function UserManagement() {
     const users = useQuery(api.admin.listUsers);
     const banUser = useMutation(api.admin.banUser);
+    const setVerification = useMutation(api.admin.setVerification);
 
     const handleBan = async (userId: any, isBanned: boolean) => {
         try {
@@ -24,6 +26,15 @@ export default function UserManagement() {
             toast.success(isBanned ? "User banned" : "User unbanned");
         } catch (error) {
             toast.error("Failed to update user status");
+        }
+    };
+
+    const handleVerify = async (userId: any, isVerified: boolean) => {
+        try {
+            await setVerification({ userId, isVerified });
+            toast.success(isVerified ? "User verified" : "Verification removed");
+        } catch (error) {
+            toast.error("Failed to update verification");
         }
     };
 
@@ -36,6 +47,7 @@ export default function UserManagement() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Verified</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                 </TableRow>
@@ -46,6 +58,20 @@ export default function UserManagement() {
                         <TableCell>{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.role || "Member"}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    checked={!!user.isVerified}
+                                    onCheckedChange={(checked) => handleVerify(user._id, checked)}
+                                    disabled={!!user.isAdmin}
+                                />
+                                {user.isVerified ? (
+                                    <Badge variant="outline">Verified</Badge>
+                                ) : (
+                                    <Badge variant="secondary">Unverified</Badge>
+                                )}
+                            </div>
+                        </TableCell>
                         <TableCell>
                             {user.isBanned && <Badge variant="destructive">Banned</Badge>}
                             {user.isAdmin && <Badge variant="default">Admin</Badge>}

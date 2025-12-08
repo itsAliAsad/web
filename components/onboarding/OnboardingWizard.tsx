@@ -11,6 +11,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useRole } from "@/context/RoleContext";
 
 export default function OnboardingWizard() {
     const [step, setStep] = useState(1);
@@ -19,6 +20,7 @@ export default function OnboardingWizard() {
     const [university, setUniversity] = useState("");
     const router = useRouter();
     const updateUser = useMutation(api.users.update);
+    const { setRole } = useRole();
 
     const totalSteps = 3;
     const progress = (step / totalSteps) * 100;
@@ -33,10 +35,10 @@ export default function OnboardingWizard() {
 
     const handleSubmit = async () => {
         try {
-            // Note: We need to update the schema to allow setting role via mutation if not already there.
-            // For now, we update bio and university.
-            // Ideally we'd have a specific onboarding mutation.
-            await updateUser({ bio, university });
+            await Promise.all([
+                updateUser({ bio, university, role }),
+                setRole(role),
+            ]);
             toast.success("Profile updated!");
             router.push(role === "buyer" ? "/dashboard/buyer" : "/dashboard/seller");
         } catch (error) {

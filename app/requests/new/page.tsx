@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,13 @@ import { toast } from "sonner";
 
 export default function CreateRequestPage() {
     const createRequest = useMutation(api.requests.create);
+    const user = useQuery(api.users.currentUser);
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (user?.isBanned) return;
         setIsSubmitting(true);
         const formData = new FormData(e.currentTarget);
 
@@ -47,6 +49,11 @@ export default function CreateRequestPage() {
     return (
         <div className="container mx-auto py-10 max-w-2xl">
             <h1 className="text-3xl font-bold mb-8">Post a Request</h1>
+            {user?.isBanned && (
+                <div className="p-4 border border-destructive/50 bg-destructive/10 rounded-lg text-destructive">
+                    Your account is banned. You cannot post new requests.
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                     <label htmlFor="title" className="text-sm font-medium">
@@ -113,7 +120,7 @@ export default function CreateRequestPage() {
                     </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full" disabled={isSubmitting || user?.isBanned}>
                     {isSubmitting ? "Posting..." : "Post Request"}
                 </Button>
             </form>

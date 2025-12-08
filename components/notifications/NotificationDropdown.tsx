@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,15 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 export default function NotificationDropdown() {
-    const notifications = useQuery(api.notifications.list);
+    const { results, status, loadMore } = usePaginatedQuery(
+        api.notifications.list,
+        { initialNumItems: 20 }
+    );
     const markRead = useMutation(api.notifications.markRead);
     const markAllRead = useMutation(api.notifications.markAllRead);
     const router = useRouter();
 
-    if (notifications === undefined) {
+    if (status === "LoadingFirstPage") {
         return (
             <Button variant="ghost" size="icon" disabled>
                 <Bell className="h-5 w-5" />
@@ -29,6 +32,7 @@ export default function NotificationDropdown() {
         );
     }
 
+    const notifications = results ?? [];
     const unreadCount = notifications.filter((n) => !n.isRead).length;
 
     const handleNotificationClick = async (notification: typeof notifications[0]) => {
@@ -39,16 +43,26 @@ export default function NotificationDropdown() {
         // Navigate based on type
         switch (notification.type) {
             case "offer_received":
-                router.push(`/requests/${notification.data.requestId}`);
+                if (notification.data?.requestId) {
+                    router.push(`/requests/${notification.data.requestId}`);
+                }
                 break;
             case "offer_accepted":
-                router.push(`/requests/${notification.data.requestId}`);
+                if (notification.data?.requestId) {
+                    router.push(`/requests/${notification.data.requestId}`);
+                }
                 break;
             case "request_completed":
-                router.push(`/requests/${notification.data.requestId}`);
+                if (notification.data?.requestId) {
+                    router.push(`/requests/${notification.data.requestId}`);
+                }
                 break;
             case "new_message":
-                router.push(`/messages`);
+                if (notification.data?.conversationId) {
+                    router.push(`/messages?conversation=${notification.data.conversationId}`);
+                } else {
+                    router.push(`/messages`);
+                }
                 break;
         }
     };
@@ -104,6 +118,14 @@ export default function NotificationDropdown() {
                             </div>
                         </DropdownMenuItem>
                     ))
+                )}
+                {status === "CanLoadMore" && notifications.length > 0 && (
+                    <DropdownMenuItem
+                        className="justify-center text-xs text-muted-foreground cursor-pointer"
+                        onClick={() => loadMore(20)}
+                    >
+                        Load more
+                    </DropdownMenuItem>
                 )}
             </DropdownMenuContent>
         </DropdownMenu>

@@ -12,10 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 export default function AdminPage() {
     const stats = useQuery(api.admin.getStats);
     const createAnnouncement = useMutation(api.admin.createAnnouncement);
+    const announcements = useQuery(api.admin.listAnnouncements);
+    const setAnnouncementStatus = useMutation(api.admin.setAnnouncementStatus);
     const [announcementTitle, setAnnouncementTitle] = useState("");
     const [announcementContent, setAnnouncementContent] = useState("");
 
@@ -30,6 +33,15 @@ export default function AdminPage() {
             setAnnouncementContent("");
         } catch (error) {
             toast.error("Failed to create announcement");
+        }
+    };
+
+    const handleToggleAnnouncement = async (id: any, isActive: boolean) => {
+        try {
+            await setAnnouncementStatus({ id, isActive });
+            toast.success(isActive ? "Announcement activated" : "Announcement deactivated");
+        } catch (error) {
+            toast.error("Failed to update announcement");
         }
     };
 
@@ -90,6 +102,40 @@ export default function AdminPage() {
                                     onChange={(e) => setAnnouncementContent(e.target.value)}
                                 />
                                 <Button onClick={handleAnnouncement}>Post Announcement</Button>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Manage Announcements</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {announcements?.length ? (
+                                    announcements.map((announcement) => (
+                                        <div
+                                            key={announcement._id}
+                                            className="flex items-start justify-between gap-4 border p-3 rounded-lg"
+                                        >
+                                            <div>
+                                                <p className="font-semibold">{announcement.title}</p>
+                                                <p className="text-sm text-muted-foreground">{announcement.content}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    checked={announcement.isActive}
+                                                    onCheckedChange={(checked) =>
+                                                        handleToggleAnnouncement(announcement._id, checked)
+                                                    }
+                                                />
+                                                <span className="text-sm text-muted-foreground">
+                                                    {announcement.isActive ? "Active" : "Inactive"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No announcements yet.</p>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

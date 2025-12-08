@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -13,17 +15,29 @@ import {
 
 export default function TermsModal() {
     const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const user = useQuery(api.users.currentUser);
+    const acceptTerms = useMutation(api.users.acceptTerms);
 
     useEffect(() => {
-        const hasAccepted = localStorage.getItem("terms_accepted");
-        if (!hasAccepted) {
+        if (user === undefined) return;
+        if (!user || user.termsAcceptedAt) {
+            setOpen(false);
+        } else {
             setOpen(true);
         }
-    }, []);
+    }, [user]);
 
-    const handleAccept = () => {
-        localStorage.setItem("terms_accepted", "true");
-        setOpen(false);
+    const handleAccept = async () => {
+        if (!user || isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            await acceptTerms({});
+            setOpen(false);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -42,7 +56,9 @@ export default function TermsModal() {
                     <p><strong>4. Disclaimer</strong><br />Path is a platform for connecting students. We are not responsible for the quality of services provided by other users.</p>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleAccept}>I Accept</Button>
+                    <Button onClick={handleAccept} disabled={isSubmitting || !user}>
+                        I Accept
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -10,9 +10,9 @@ export default function RoleSwitcher() {
     const { role, toggleRole } = useRole();
     const router = useRouter();
 
-    const handleToggle = () => {
+    const handleToggle = async () => {
         const nextRole = role === "buyer" ? "seller" : "buyer";
-        toggleRole();
+        await toggleRole();
         router.push(`/dashboard/${nextRole}`);
     };
 

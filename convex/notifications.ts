@@ -1,43 +1,25 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { requireUser } from "./utils";
 
 export const list = query({
-    args: {},
-    handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) return [];
+    args: { paginationOpts: paginationOptsValidator },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx, { allowBanned: true });
 
         return await ctx.db
             .query("notifications")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .order("desc")
-            .take(20);
+            .paginate(args.paginationOpts);
     },
 });
 
 export const markRead = mutation({
     args: { notificationId: v.id("notifications") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx, { allowBanned: true });
 
         const notification = await ctx.db.get(args.notificationId);
         if (!notification) throw new Error("Notification not found");
@@ -51,17 +33,7 @@ export const markRead = mutation({
 export const markAllRead = mutation({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx, { allowBanned: true });
 
         const unread = await ctx.db
             .query("notifications")

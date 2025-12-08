@@ -34,6 +34,9 @@ export default function RequestDetailsPage() {
     const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState("");
+    const [sellerReviewDialogOpen, setSellerReviewDialogOpen] = useState(false);
+    const [sellerRating, setSellerRating] = useState(5);
+    const [sellerComment, setSellerComment] = useState("");
 
     // Offer form state
     const [offerPrice, setOfferPrice] = useState("");
@@ -50,8 +53,13 @@ export default function RequestDetailsPage() {
 
     const isOwner = currentUser && request && currentUser._id === request.buyerId;
     const isSeller = currentUser && request && currentUser._id !== request.buyerId;
+    const acceptedOffer = offers?.find((o) => o.status === "accepted");
+    const acceptedByCurrentSeller = offers?.find(
+        (o) => o.status === "accepted" && currentUser && o.sellerId === currentUser._id
+    );
 
     const handleAccept = async (offerId: Id<"offers">) => {
+        if (currentUser?.isBanned) return;
         try {
             await acceptOffer({ offerId, requestId });
             toast.success("Offer accepted!");
@@ -62,6 +70,7 @@ export default function RequestDetailsPage() {
     };
 
     const handleComplete = async () => {
+        if (currentUser?.isBanned) return;
         try {
             await completeRequest({ id: requestId });
             await createReview({
@@ -82,6 +91,11 @@ export default function RequestDetailsPage() {
         e.preventDefault();
         if (!offerPrice) return;
 
+        if (currentUser?.isBanned) {
+            toast.error("You are banned and cannot submit offers.");
+            return;
+        }
+
         setIsSubmittingOffer(true);
         try {
             await createOffer({
@@ -95,6 +109,23 @@ export default function RequestDetailsPage() {
             console.error(error);
         } finally {
             setIsSubmittingOffer(false);
+        }
+    };
+
+    const handleSellerReview = async () => {
+        if (!acceptedByCurrentSeller || currentUser?.isBanned) return;
+        try {
+            await createReview({
+                requestId,
+                rating: sellerRating,
+                comment: sellerComment,
+                type: "seller_to_buyer",
+            });
+            toast.success("Review submitted!");
+            setSellerReviewDialogOpen(false);
+        } catch (error) {
+            toast.error("Failed to submit review");
+            console.error(error);
         }
     };
 
@@ -169,8 +200,8 @@ export default function RequestDetailsPage() {
                                             <CardContent>
                                                 <div className="flex justify-between items-center mb-4">
                                                     <div className="flex items-center">
-                                                        <p className="text-xs text-gray-500">Seller: {offer.sellerId.toString().slice(0, 8)}...</p>
-                                                        <VerifiedBadge />
+                                                        <p className="text-xs text-gray-500">Seller: {offer.sellerName || offer.sellerId.toString().slice(0, 8)}</p>
+                                                        {offer.sellerIsVerified && <VerifiedBadge />}
                                                     </div>
                                                     <ReportDialog targetId={offer.sellerId} requestId={requestId} />
                                                 </div>
@@ -250,6 +281,20 @@ export default function RequestDetailsPage() {
                                     </CardContent>
                                 </Card>
                             )}
+
+                            {request.status === "completed" && acceptedByCurrentSeller && (
+                                <Card className="mt-4">
+                                    <CardHeader>
+                                        <CardTitle>Leave a review for the buyer</CardTitle>
+                                        <CardDescription>Share your experience after completing the job.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button onClick={() => setSellerReviewDialogOpen(true)} className="w-full">
+                                            Write Review
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </>
                     )}
                 </div>
@@ -275,6 +320,43 @@ export default function RequestDetailsPage() {
                     </div>
                     <DialogFooter>
                         <Button onClick={handleComplete}>Submit Review</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={sellerReviewDialogOpen} onOpenChange={setSellerReviewDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Review the Buyer</DialogTitle>
+                        <DialogDescription>
+                            Leave feedback for the buyer now that the job is completed.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="seller-rating" className="text-right">Rating (1-5)</label>
+                            <Input
+                                id="seller-rating"
+                                type="number"
+                                min="1"
+                                max="5"
+                                value={sellerRating}
+                                onChange={(e) => setSellerRating(Number(e.target.value))}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="seller-comment" className="text-right">Comment</label>
+                            <Textarea
+                                id="seller-comment"
+                                value={sellerComment}
+                                onChange={(e) => setSellerComment(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleSellerReview}>Submit Review</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin, requireUser } from "./utils";
 
 export const create = mutation({
     args: {
@@ -9,17 +10,7 @@ export const create = mutation({
         description: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Unauthenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx);
 
         await ctx.db.insert("reports", {
             reporterId: user._id,
@@ -36,8 +27,7 @@ export const create = mutation({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        // In a real app, check for admin role
-        // For MVP, we'll just return all for now or maybe check a hardcoded admin ID
+        await requireAdmin(ctx);
         return await ctx.db.query("reports").order("desc").collect();
     },
 });
@@ -48,7 +38,7 @@ export const resolve = mutation({
         status: v.union(v.literal("resolved"), v.literal("dismissed")),
     },
     handler: async (ctx, args) => {
-        // In a real app, check for admin role
+        await requireAdmin(ctx);
         await ctx.db.patch(args.reportId, { status: args.status });
     },
 });

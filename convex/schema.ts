@@ -10,10 +10,15 @@ export default defineSchema({
         bio: v.optional(v.string()),
         university: v.optional(v.string()), // For .edu check later
         reputation: v.number(), // Aggregated rating
+        ratingSum: v.optional(v.number()),
+        ratingCount: v.optional(v.number()),
+        termsAcceptedAt: v.optional(v.string()),
         role: v.optional(v.union(v.literal("buyer"), v.literal("seller"))), // Can be both, but primary intent
         isVerified: v.optional(v.boolean()), // Added isVerified
         isAdmin: v.optional(v.boolean()), // Added isAdmin
         isBanned: v.optional(v.boolean()), // Added isBanned
+        verifiedAt: v.optional(v.number()),
+        verifiedBy: v.optional(v.id("users")),
     }).index("by_token", ["tokenIdentifier"]),
 
     requests: defineTable({
@@ -31,6 +36,7 @@ export default defineSchema({
         category: v.optional(v.string()),
     })
         .index("by_status", ["status"])
+        .index("by_status_and_category", ["status", "category"])
         .index("by_buyer", ["buyerId"])
         .searchIndex("search_title_description", {
             searchField: "title",
@@ -39,6 +45,7 @@ export default defineSchema({
 
     offers: defineTable({
         requestId: v.id("requests"),
+        buyerId: v.optional(v.id("users")),
         sellerId: v.id("users"),
         price: v.number(),
         status: v.union(
@@ -49,7 +56,9 @@ export default defineSchema({
     })
         .index("by_request", ["requestId"])
         .index("by_seller", ["sellerId"])
-        .index("by_request_and_seller", ["requestId", "sellerId"]),
+        .index("by_request_and_seller", ["requestId", "sellerId"])
+        .index("by_buyer_and_seller", ["buyerId", "sellerId"])
+        .index("by_seller_and_buyer", ["sellerId", "buyerId"]),
 
     reviews: defineTable({
         reviewerId: v.id("users"),

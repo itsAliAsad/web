@@ -1,5 +1,16 @@
 import { v } from "convex/values";
+import { z } from "zod";
 import { mutation, query } from "./_generated/server";
+import { requireUser } from "./utils";
+
+const updateSchema = z
+    .object({
+        bio: z.string().optional(),
+        university: z.string().optional(),
+        avatar: z.string().optional(),
+        name: z.string().optional(),
+    })
+    .strict();
 
 export const store = mutation({
     args: {},
@@ -9,7 +20,6 @@ export const store = mutation({
             throw new Error("Called storeUser without authentication present");
         }
 
-        // Check if we've already stored this identity before.
         const user = await ctx.db
             .query("users")
             .withIndex("by_token", (q) =>
@@ -32,6 +42,12 @@ export const store = mutation({
             email: identity.email!,
             image: identity.pictureUrl,
             reputation: 0,
+            ratingSum: 0,
+            ratingCount: 0,
+            role: "buyer",
+            isVerified: false,
+            isAdmin: false,
+            isBanned: false,
         });
     },
 });
@@ -39,51 +55,79 @@ export const store = mutation({
 export const currentUser = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            return null;
+        try {
+            const user = await requireUser(ctx, { allowBanned: true });
+            const ratingSum = user.ratingSum ?? 0;
+            const ratingCount = user.ratingCount ?? 0;
+
+            return {
+                ...user,
+                reputation: ratingCount > 0 ? ratingSum / ratingCount : 0,
+            };
+        } catch (error) {
+            // If unauthenticated, return null to keep existing behavior
+            if (error instanceof Error && error.message === "Unauthenticated") {
+                return null;
+            }
+            throw error;
         }
-        return await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
     },
 });
 
 export const update = mutation({
     args: {
-        bio: v.optional(v.string()),
-        university: v.optional(v.string()),
+        updates: v.any(),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("Unauthenticated call to update user");
-        }
+        const user = await requireUser(ctx);
 
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_token", (q) =>
-                q.eq("tokenIdentifier", identity.tokenIdentifier)
-            )
-            .unique();
+        const parsed = updateSchema.parse(args.updates ?? {});
 
-        if (!user) {
-            throw new Error("User not found");
-        }
+        const patch: Record<string, unknown> = {};
+        if (parsed.bio !== undefined) patch.bio = parsed.bio;
+        if (parsed.university !== undefined) patch.university = parsed.university;
+        if (parsed.avatar !== undefined) patch.image = parsed.avatar;
+        if (parsed.name !== undefined) patch.name = parsed.name;
 
-        await ctx.db.patch(user._id, {
-            bio: args.bio,
-            university: args.university,
-        });
+        if (Object.keys(patch).length === 0) return;
+
+        await ctx.db.patch(user._id, patch);
     },
 });
 
 export const get = query({
     args: { id: v.id("users") },
     handler: async (ctx, args) => {
-        return await ctx.db.get(args.id);
+        const user = await ctx.db.get(args.id);
+        if (!user) return null;
+
+        const ratingSum = user.ratingSum ?? 0;
+        const ratingCount = user.ratingCount ?? 0;
+
+        return {
+            ...user,
+            reputation: ratingCount > 0 ? ratingSum / ratingCount : 0,
+        };
+    },
+});
+
+export const setRole = mutation({
+    args: { role: v.union(v.literal("buyer"), v.literal("seller")) },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx);
+        await ctx.db.patch(user._id, { role: args.role });
+        return args.role;
+    },
+});
+
+export const acceptTerms = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const user = await requireUser(ctx, { allowBanned: true });
+        const termsAcceptedAt = new Date().toISOString();
+
+        await ctx.db.patch(user._id, { termsAcceptedAt });
+
+        return termsAcceptedAt;
     },
 });

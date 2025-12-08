@@ -39,6 +39,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (user?.isBanned) return;
         if (!newMessage.trim()) return;
 
         await sendMessage({
@@ -98,7 +99,8 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                     <Input
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..."
+                        placeholder={user?.isBanned ? "You are banned from sending messages" : "Type a message..."}
+                        disabled={!!user?.isBanned}
                         className="flex-1"
                     />
                     <Button type="submit" size="icon">

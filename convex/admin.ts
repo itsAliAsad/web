@@ -1,26 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-
-// Helper to check admin status
-async function checkAdmin(ctx: any) {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-
-    const user = await ctx.db
-        .query("users")
-        .withIndex("by_token", (q: any) =>
-            q.eq("tokenIdentifier", identity.tokenIdentifier)
-        )
-        .unique();
-
-    if (!user || !user.isAdmin) throw new Error("Unauthorized: Admin access required");
-    return user;
-}
+import { requireAdmin } from "./utils";
 
 export const getStats = query({
     args: {},
     handler: async (ctx) => {
-        await checkAdmin(ctx);
+        await requireAdmin(ctx);
 
         const usersCount = (await ctx.db.query("users").collect()).length;
         const requestsCount = (await ctx.db.query("requests").collect()).length;
@@ -37,7 +22,7 @@ export const getStats = query({
 export const getReports = query({
     args: {},
     handler: async (ctx) => {
-        await checkAdmin(ctx);
+        await requireAdmin(ctx);
         return await ctx.db.query("reports").order("desc").collect();
     },
 });
@@ -45,7 +30,7 @@ export const getReports = query({
 export const listUsers = query({
     args: {},
     handler: async (ctx) => {
-        await checkAdmin(ctx);
+        await requireAdmin(ctx);
         return await ctx.db.query("users").order("desc").collect();
     },
 });
@@ -53,7 +38,7 @@ export const listUsers = query({
 export const banUser = mutation({
     args: { userId: v.id("users"), isBanned: v.boolean() },
     handler: async (ctx, args) => {
-        await checkAdmin(ctx);
+        await requireAdmin(ctx);
         await ctx.db.patch(args.userId, { isBanned: args.isBanned });
     },
 });
@@ -61,7 +46,7 @@ export const banUser = mutation({
 export const createAnnouncement = mutation({
     args: { title: v.string(), content: v.string() },
     handler: async (ctx, args) => {
-        await checkAdmin(ctx);
+        await requireAdmin(ctx);
         await ctx.db.insert("announcements", {
             title: args.title,
             content: args.content,
@@ -80,5 +65,33 @@ export const getAnnouncements = query({
             .withIndex("by_active", (q) => q.eq("isActive", true))
             .order("desc")
             .collect();
+    },
+});
+
+export const listAnnouncements = query({
+    args: {},
+    handler: async (ctx) => {
+        await requireAdmin(ctx);
+        return await ctx.db.query("announcements").order("desc").collect();
+    },
+});
+
+export const setAnnouncementStatus = mutation({
+    args: { id: v.id("announcements"), isActive: v.boolean() },
+    handler: async (ctx, args) => {
+        await requireAdmin(ctx);
+        await ctx.db.patch(args.id, { isActive: args.isActive });
+    },
+});
+
+export const setVerification = mutation({
+    args: { userId: v.id("users"), isVerified: v.boolean() },
+    handler: async (ctx, args) => {
+        const admin = await requireAdmin(ctx);
+        await ctx.db.patch(args.userId, {
+            isVerified: args.isVerified,
+            verifiedBy: args.isVerified ? admin._id : undefined,
+            verifiedAt: args.isVerified ? Date.now() : undefined,
+        });
     },
 });
