@@ -100,7 +100,7 @@ export default function Navbar() {
                         <CommandSearch />
                     </div>
                     <RoleSwitcher />
-                    <NotificationDropdown />
+                    {user && <NotificationDropdown />}
                     <UserButton afterSignOutUrl="/" />
                 </div>
             </div>

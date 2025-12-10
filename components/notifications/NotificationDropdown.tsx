@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 export default function NotificationDropdown() {
     const { results, status, loadMore } = usePaginatedQuery(
         api.notifications.list,
+        {},
         { initialNumItems: 20 }
     );
     const markRead = useMutation(api.notifications.markRead);
