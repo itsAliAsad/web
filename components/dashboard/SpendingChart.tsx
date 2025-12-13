@@ -23,27 +23,36 @@ export function SpendingChart() {
             <CardContent className="pl-2">
                 <ChartContainer config={{
                     total: {
-                        label: "Spent",
-                        color: "hsl(var(--chart-2))",
+                        label: "Spending",
+                        color: "var(--chart-2)",
                     },
-                }} className="h-[200px] w-full">
+                }} className="h-[350px] w-full">
                     <BarChart data={data}>
+                        <defs>
+                            <linearGradient id="colorSpending" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                            </linearGradient>
+                        </defs>
                         <XAxis
                             dataKey="name"
-                            stroke="#888888"
+                            stroke="var(--muted-foreground)"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
                         />
                         <YAxis
-                            stroke="#888888"
+                            stroke="var(--muted-foreground)"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
                             tickFormatter={(value) => `$${value}`}
                         />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} className="fill-primary" />
+                        <ChartTooltip
+                            content={<ChartTooltipContent indicator="line" className="glass-card border-white/20" />}
+                            cursor={{ fill: 'var(--muted)', opacity: 0.2 }}
+                        />
+                        <Bar dataKey="total" fill="url(#colorSpending)" radius={[6, 6, 0, 0]} maxBarSize={50} />
                     </BarChart>
                 </ChartContainer>
             </CardContent>

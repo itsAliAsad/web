@@ -21,7 +21,7 @@ export default function Navbar() {
     const isActive = (path: string) => pathname === path;
 
     return (
-        <nav className="glass-panel sticky top-0 z-50 border-b-0">
+        <nav className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
             <div className="container flex h-16 items-center justify-between px-6">
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center space-x-2">
@@ -92,6 +92,15 @@ export default function Navbar() {
                                 Admin Portal
                             </Link>
                         )}
+                        <Link
+                            href="/settings"
+                            className={cn(
+                                "transition-colors hover:text-foreground/80",
+                                isActive("/settings") ? "text-foreground" : "text-foreground/60"
+                            )}
+                        >
+                            Settings
+                        </Link>
                     </div>
                 </div>
 

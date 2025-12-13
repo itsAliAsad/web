@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import ReportDialog from "@/components/trust/ReportDialog";
 import VerifiedBadge from "@/components/trust/VerifiedBadge";
-import { Send } from "lucide-react";
+import { Send, FileIcon } from "lucide-react";
 import DealSidebar from "./DealSidebar";
 
 interface ChatWindowProps {
@@ -80,7 +80,17 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                                     : "bg-muted"
                                     }`}
                             >
-                                <p>{msg.content}</p>
+                                {msg.type === "file" && msg.metadata ? (
+                                    <div className="flex items-center gap-2 p-2 bg-background/20 rounded mb-1">
+                                        <FileIcon className="w-4 h-4" />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium">{msg.metadata.fileName}</span>
+                                            <span className="text-xs opacity-70">{(msg.metadata.fileSize / 1024).toFixed(1)} KB</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p>{msg.content}</p>
+                                )}
                                 <span className="text-[10px] opacity-70 block text-right mt-1">
                                     {new Date(msg.createdAt).toLocaleTimeString([], {
                                         hour: "2-digit",

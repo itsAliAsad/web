@@ -21,6 +21,9 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SearchX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -96,7 +99,13 @@ export default function OpportunitiesPage() {
                 {requests === undefined ? (
                     <p>Loading...</p>
                 ) : requests.length === 0 ? (
-                    <p className="text-gray-500">No requests found.</p>
+                    <div className="col-span-full">
+                        <EmptyState
+                            icon={SearchX}
+                            title="No opportunities found"
+                            description={isSearching ? "Try adjusting your search filters" : "There are no open requests at the moment."}
+                        />
+                    </div>
                 ) : (
                     requests.map((request) => (
                         <Card key={request._id} className="flex flex-col">
@@ -135,9 +144,9 @@ export default function OpportunitiesPage() {
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4">
                                             <div className="grid grid-cols-4 items-center gap-4">
-                                                <label htmlFor="price" className="text-right">
+                                                <Label htmlFor="price" className="text-right">
                                                     Price
-                                                </label>
+                                                </Label>
                                                 <Input
                                                     id="price"
                                                     type="number"

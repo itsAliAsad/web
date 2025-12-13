@@ -20,7 +20,7 @@ export default function OnboardingWizard() {
     const [university, setUniversity] = useState("");
     const router = useRouter();
     const updateUser = useMutation(api.users.update);
-    const { setRole } = useRole();
+    const { setRole: setContextRole } = useRole();
 
     const totalSteps = 3;
     const progress = (step / totalSteps) * 100;
@@ -36,8 +36,14 @@ export default function OnboardingWizard() {
     const handleSubmit = async () => {
         try {
             await Promise.all([
-                updateUser({ bio, university, role }),
-                setRole(role),
+                updateUser({
+                    updates: {
+                        bio,
+                        university,
+                        role
+                    }
+                }),
+                setContextRole(role),
             ]);
             toast.success("Profile updated!");
             router.push(role === "buyer" ? "/dashboard/buyer" : "/dashboard/seller");

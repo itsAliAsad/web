@@ -4,10 +4,13 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import PortfolioSection from "@/components/portfolio/PortfolioSection";
 import CoursesSection from "@/components/portfolio/CoursesSection";
 import VerifiedBadge from "@/components/trust/VerifiedBadge";
 import ReportDialog from "@/components/trust/ReportDialog";
+import EditProfileDialog from "@/components/profile/EditProfileDialog";
+import { Linkedin, Twitter, Globe, LinkIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 
 export default function PublicProfilePage() {
@@ -52,18 +55,42 @@ export default function PublicProfilePage() {
                         {!isOwner && currentUser && (
                             <ReportDialog targetId={user._id} />
                         )}
+                        {isOwner && (
+                            <EditProfileDialog user={user} />
+                        )}
                     </div>
 
                     <div className="mt-4 flex gap-4">
-                        <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        <Badge variant="info" className="text-sm px-3 py-1">
                             Reputation: {user.reputation}
-                        </div>
-                        <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 capitalize">
+                        </Badge>
+                        <Badge variant="secondary" className="text-sm px-3 py-1 capitalize">
                             {user.role || "Member"}
-                        </div>
+                        </Badge>
                     </div>
 
                     <p className="mt-6 text-lg whitespace-pre-wrap">{user.bio || "No bio provided."}</p>
+
+                    {/* Social Links */}
+                    {user.links && (
+                        <div className="flex gap-4 mt-6">
+                            {user.links.linkedin && (
+                                <a href={user.links.linkedin} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                                    <Linkedin className="w-5 h-5" />
+                                </a>
+                            )}
+                            {user.links.twitter && (
+                                <a href={user.links.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                                    <Twitter className="w-5 h-5" />
+                                </a>
+                            )}
+                            {user.links.portfolio && (
+                                <a href={user.links.portfolio} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                                    <Globe className="w-5 h-5" />
+                                </a>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 

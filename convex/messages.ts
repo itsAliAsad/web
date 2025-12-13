@@ -78,6 +78,13 @@ export const send = mutation({
         recipientId: v.optional(v.id("users")), // If starting new convo
         content: v.string(),
         type: v.union(v.literal("text"), v.literal("image"), v.literal("file")),
+        metadata: v.optional(
+            v.object({
+                fileName: v.string(),
+                fileSize: v.number(),
+                mimeType: v.string(),
+            })
+        ),
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
@@ -116,6 +123,7 @@ export const send = mutation({
             senderId: user._id,
             content: args.content,
             type: args.type,
+            metadata: args.metadata,
             isRead: false,
             createdAt: Date.now(),
         });

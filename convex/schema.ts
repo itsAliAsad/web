@@ -19,6 +19,38 @@ export default defineSchema({
         isBanned: v.optional(v.boolean()), // Added isBanned
         verifiedAt: v.optional(v.number()),
         verifiedBy: v.optional(v.id("users")),
+
+        // UX & Personalization
+        notificationPreferences: v.optional(
+            v.object({
+                email_marketing: v.boolean(),
+                email_transactional: v.boolean(),
+                push_messages: v.boolean(),
+            })
+        ),
+        currency: v.optional(v.string()),
+        language: v.optional(v.string()),
+        theme: v.optional(v.string()),
+        links: v.optional(
+            v.object({
+                linkedin: v.optional(v.string()),
+                portfolio: v.optional(v.string()),
+                twitter: v.optional(v.string()),
+            })
+        ),
+
+        // Trust & Security
+        lastLoginAt: v.optional(v.number()),
+        loginIp: v.optional(v.string()),
+        banReason: v.optional(v.string()),
+        bannedAt: v.optional(v.number()),
+
+        // Communication
+        marketingConsent: v.optional(v.boolean()),
+        marketingConsentUpdatedAt: v.optional(v.number()),
+
+        // Data Integrity
+        deletedAt: v.optional(v.number()),
     }).index("by_token", ["tokenIdentifier"]),
 
     requests: defineTable({
@@ -34,6 +66,7 @@ export default defineSchema({
             v.literal("cancelled")
         ),
         category: v.optional(v.string()),
+        deletedAt: v.optional(v.number()),
     })
         .index("by_status", ["status"])
         .index("by_status_and_category", ["status", "category"])
@@ -53,6 +86,7 @@ export default defineSchema({
             v.literal("accepted"),
             v.literal("rejected")
         ),
+        deletedAt: v.optional(v.number()),
     })
         .index("by_request", ["requestId"])
         .index("by_seller", ["sellerId"])
@@ -84,6 +118,13 @@ export default defineSchema({
         senderId: v.id("users"),
         content: v.string(),
         type: v.union(v.literal("text"), v.literal("image"), v.literal("file")),
+        metadata: v.optional(
+            v.object({
+                fileName: v.string(), // e.g. "document.pdf"
+                fileSize: v.number(), // in bytes
+                mimeType: v.string(), // e.g. "application/pdf"
+            })
+        ),
         isRead: v.boolean(),
         createdAt: v.number(),
     })
@@ -141,4 +182,16 @@ export default defineSchema({
         isActive: v.boolean(),
         createdAt: v.number(),
     }).index("by_active", ["isActive"]),
+
+    audit_logs: defineTable({
+        actorId: v.optional(v.id("users")), // Who did it
+        action: v.string(), // e.g. "ban_user", "delete_request"
+        targetId: v.optional(v.id("users")), // Who was affected
+        targetType: v.optional(v.string()), // e.g. "user", "request"
+        details: v.optional(v.any()), // Extra context
+        ipAddress: v.optional(v.string()),
+        createdAt: v.number(),
+    })
+        .index("by_actor", ["actorId"])
+        .index("by_action", ["action"]),
 });

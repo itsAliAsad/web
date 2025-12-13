@@ -44,3 +44,22 @@ export async function requireAdmin(ctx: Ctx) {
     }
     return user;
 }
+
+
+import { Id } from "./_generated/dataModel";
+
+export async function logAudit(
+    ctx: MutationCtx,
+    args: {
+        action: string;
+        actorId?: Id<"users">;
+        targetId?: Id<"users">;
+        targetType?: string;
+        details?: any;
+    }
+) {
+    await ctx.db.insert("audit_logs", {
+        ...args,
+        createdAt: Date.now(),
+    });
+}

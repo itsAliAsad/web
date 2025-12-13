@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Search, Filter, Briefcase } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -47,9 +48,11 @@ export default function SearchPage() {
                 {requests === undefined ? (
                     <p>Loading...</p>
                 ) : requests.length === 0 ? (
-                    <div className="text-center py-12">
-                        <p className="text-muted-foreground text-lg">No jobs found matching your criteria.</p>
-                    </div>
+                    <EmptyState
+                        icon={Briefcase}
+                        title="No jobs found"
+                        description="No jobs found matching your criteria."
+                    />
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {requests.map((request) => (

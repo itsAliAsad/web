@@ -9,6 +9,21 @@ const updateSchema = z
         university: z.string().optional(),
         avatar: z.string().optional(),
         name: z.string().optional(),
+        // New fields
+        currency: z.string().optional(),
+        language: z.string().optional(),
+        theme: z.string().optional(),
+        links: z.object({
+            linkedin: z.string().optional(),
+            portfolio: z.string().optional(),
+            twitter: z.string().optional(),
+        }).optional(),
+        notificationPreferences: z.object({
+            email_marketing: z.boolean(),
+            email_transactional: z.boolean(),
+            push_messages: z.boolean(),
+        }).optional(),
+        marketingConsent: z.boolean().optional(),
     })
     .strict();
 
@@ -29,9 +44,11 @@ export const store = mutation({
 
         if (user !== null) {
             // If we've seen this identity before but the name has changed, patch the value.
+            const patch: any = { lastLoginAt: Date.now() };
             if (user.name !== identity.name) {
-                await ctx.db.patch(user._id, { name: identity.name });
+                patch.name = identity.name;
             }
+            await ctx.db.patch(user._id, patch);
             return user._id;
         }
 
@@ -48,6 +65,17 @@ export const store = mutation({
             isVerified: false,
             isAdmin: false,
             isBanned: false,
+            // Defaults
+            lastLoginAt: Date.now(),
+            notificationPreferences: {
+                email_marketing: false,
+                email_transactional: true,
+                push_messages: true,
+            },
+            currency: "USD",
+            language: "en",
+            theme: "system",
+            marketingConsent: false,
         });
     },
 });
@@ -88,6 +116,15 @@ export const update = mutation({
         if (parsed.university !== undefined) patch.university = parsed.university;
         if (parsed.avatar !== undefined) patch.image = parsed.avatar;
         if (parsed.name !== undefined) patch.name = parsed.name;
+        if (parsed.currency !== undefined) patch.currency = parsed.currency;
+        if (parsed.language !== undefined) patch.language = parsed.language;
+        if (parsed.theme !== undefined) patch.theme = parsed.theme;
+        if (parsed.links !== undefined) patch.links = parsed.links;
+        if (parsed.notificationPreferences !== undefined) patch.notificationPreferences = parsed.notificationPreferences;
+        if (parsed.marketingConsent !== undefined) {
+            patch.marketingConsent = parsed.marketingConsent;
+            patch.marketingConsentUpdatedAt = Date.now();
+        }
 
         if (Object.keys(patch).length === 0) return;
 

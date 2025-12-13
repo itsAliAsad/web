@@ -11,7 +11,7 @@ export default function VerifiedBadge() {
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <CheckCircle2 className="h-4 w-4 text-blue-500 inline-block ml-1" />
+                    <CheckCircle2 className="h-4 w-4 text-primary inline-block ml-1" />
                 </TooltipTrigger>
                 <TooltipContent>
                     <p>Verified User</p>

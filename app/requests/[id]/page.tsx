@@ -23,6 +23,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ReportDialog from "@/components/trust/ReportDialog";
@@ -154,16 +155,16 @@ export default function RequestDetailsPage() {
 
                     {/* Active Session Card - Visible to Owner or Accepted Seller */}
                     {request.status === "in_progress" && (
-                        <Card className="bg-green-50 border-green-200">
+                        <Card className="bg-primary/5 border-primary/20">
                             <CardHeader>
-                                <CardTitle className="text-green-800">Active Session</CardTitle>
-                                <CardDescription className="text-green-700">
+                                <CardTitle className="text-primary">Active Session</CardTitle>
+                                <CardDescription className="text-muted-foreground">
                                     This request is in progress.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <p className="font-medium mb-2">Contact Info:</p>
-                                <p className="text-sm text-gray-600 mb-4">
+                                <p className="text-sm text-muted-foreground mb-4">
                                     You can now message the other party to discuss details.
                                 </p>
                                 <div className="flex gap-2">
@@ -187,20 +188,20 @@ export default function RequestDetailsPage() {
                             <h2 className="text-xl font-semibold mb-4">Offers ({offers.length})</h2>
                             <div className="space-y-4">
                                 {offers.length === 0 ? (
-                                    <p className="text-gray-500">No offers yet.</p>
+                                    <p className="text-muted-foreground">No offers yet.</p>
                                 ) : (
                                     offers.map((offer) => (
-                                        <Card key={offer._id} className={offer.status === 'accepted' ? 'border-green-500 bg-green-50' : ''}>
+                                        <Card key={offer._id} className={offer.status === 'accepted' ? 'border-primary/50 bg-primary/5' : ''}>
                                             <CardHeader className="pb-2">
                                                 <div className="flex justify-between items-center">
                                                     <CardTitle className="text-base">PKR {offer.price}</CardTitle>
-                                                    {offer.status === 'accepted' && <Badge className="bg-green-600">Accepted</Badge>}
+                                                    {offer.status === 'accepted' && <Badge variant="default">Accepted</Badge>}
                                                 </div>
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="flex justify-between items-center mb-4">
                                                     <div className="flex items-center">
-                                                        <p className="text-xs text-gray-500">Seller: {offer.sellerName || offer.sellerId.toString().slice(0, 8)}</p>
+                                                        <p className="text-xs text-muted-foreground">Seller: {offer.sellerName || offer.sellerId.toString().slice(0, 8)}</p>
                                                         {offer.sellerIsVerified && <VerifiedBadge />}
                                                     </div>
                                                     <ReportDialog targetId={offer.sellerId} requestId={requestId} />
@@ -221,10 +222,10 @@ export default function RequestDetailsPage() {
                             {/* Seller View */}
                             {request.status === "open" ? (
                                 offers.find(o => o.sellerId === currentUser?._id) ? (
-                                    <Card className="bg-blue-50 border-blue-200">
+                                    <Card className="bg-secondary/50 border-secondary">
                                         <CardHeader>
-                                            <CardTitle className="text-blue-800">Offer Submitted</CardTitle>
-                                            <CardDescription className="text-blue-700">
+                                            <CardTitle>Offer Submitted</CardTitle>
+                                            <CardDescription className="text-muted-foreground">
                                                 You have placed an offer for this request.
                                             </CardDescription>
                                         </CardHeader>
@@ -233,7 +234,7 @@ export default function RequestDetailsPage() {
                                                 <p className="font-medium text-lg">
                                                     PKR {offers.find(o => o.sellerId === currentUser?._id)?.price}
                                                 </p>
-                                                <Badge className="bg-blue-600">Pending</Badge>
+                                                <Badge variant="secondary">Pending</Badge>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -248,9 +249,9 @@ export default function RequestDetailsPage() {
                                         <CardContent>
                                             <form onSubmit={handleSubmitOffer} className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <label htmlFor="price" className="text-sm font-medium">
+                                                    <Label htmlFor="price" className="text-sm font-medium">
                                                         Your Price (PKR)
-                                                    </label>
+                                                    </Label>
                                                     <Input
                                                         id="price"
                                                         type="number"
@@ -274,7 +275,7 @@ export default function RequestDetailsPage() {
                                         <CardTitle>Request Status</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-gray-600">
+                                        <p className="text-muted-foreground">
                                             This request is currently {request.status}.
                                             No new offers are being accepted.
                                         </p>
@@ -310,11 +311,11 @@ export default function RequestDetailsPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <label htmlFor="rating" className="text-right">Rating (1-5)</label>
+                            <Label htmlFor="rating" className="text-right">Rating (1-5)</Label>
                             <Input id="rating" type="number" min="1" max="5" value={rating} onChange={(e) => setRating(Number(e.target.value))} className="col-span-3" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <label htmlFor="comment" className="text-right">Comment</label>
+                            <Label htmlFor="comment" className="text-right">Comment</Label>
                             <Textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)} className="col-span-3" />
                         </div>
                     </div>
@@ -334,7 +335,7 @@ export default function RequestDetailsPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <label htmlFor="seller-rating" className="text-right">Rating (1-5)</label>
+                            <Label htmlFor="seller-rating" className="text-right">Rating (1-5)</Label>
                             <Input
                                 id="seller-rating"
                                 type="number"
@@ -346,7 +347,7 @@ export default function RequestDetailsPage() {
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <label htmlFor="seller-comment" className="text-right">Comment</label>
+                            <Label htmlFor="seller-comment" className="text-right">Comment</Label>
                             <Textarea
                                 id="seller-comment"
                                 value={sellerComment}

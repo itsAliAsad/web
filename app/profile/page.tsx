@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import PortfolioSection from "@/components/portfolio/PortfolioSection";
 import CoursesSection from "@/components/portfolio/CoursesSection";
 
@@ -28,7 +30,12 @@ export default function ProfilePage() {
     const handleSave = async () => {
         setIsSubmitting(true);
         try {
-            await updateUser({ bio, university });
+            await updateUser({
+                updates: {
+                    bio,
+                    university
+                }
+            });
             toast.success("Profile updated successfully!");
         } catch (error) {
             toast.error("Failed to update profile");
@@ -53,17 +60,17 @@ export default function ProfilePage() {
                 <div>
                     <h2 className="text-2xl font-semibold">{user.name}</h2>
                     <p className="text-gray-500">{user.email}</p>
-                    <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Reputation: {user.reputation}
+                    <div className="mt-2 text-xs">
+                        <Badge variant="info">Reputation: {user.reputation}</Badge>
                     </div>
                 </div>
             </div>
 
             <div className="space-y-6">
                 <div className="space-y-2">
-                    <label htmlFor="university" className="text-sm font-medium">
+                    <Label htmlFor="university">
                         University
-                    </label>
+                    </Label>
                     <Input
                         id="university"
                         value={university}
@@ -73,9 +80,9 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                    <label htmlFor="bio" className="text-sm font-medium">
+                    <Label htmlFor="bio">
                         Bio / Pitch
-                    </label>
+                    </Label>
                     <Textarea
                         id="bio"
                         value={bio}
