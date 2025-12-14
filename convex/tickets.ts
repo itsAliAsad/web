@@ -201,3 +201,55 @@ export const getHistoryWithTutor = query({
             .collect();
     },
 });
+
+// Get fresh matching jobs for tutor dashboard
+export const matchingRecentJobs = query({
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+            .unique();
+
+        if (!user) return [];
+
+        // Get tutor's course offerings
+        const offerings = await ctx.db
+            .query("tutor_offerings")
+            .withIndex("by_tutor", (q) => q.eq("tutorId", user._id))
+            .collect();
+
+        // Get tutor's allowed help types
+        const tutorProfile = await ctx.db
+            .query("tutor_profiles")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .unique();
+
+        if (!tutorProfile || offerings.length === 0) return [];
+
+        const allowedHelpTypes = tutorProfile.settings?.allowedHelpTypes || [];
+        const courseIds = offerings.map(o => o.courseId);
+
+        // Get jobs from last hour
+        const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+        const allOpenTickets = await ctx.db
+            .query("tickets")
+            .withIndex("by_status", (q) => q.eq("status", "open"))
+            .filter((q) => q.gte(q.field("_creationTime"), oneHourAgo))
+            .order("desc")
+            .collect();
+
+        // Filter by matching courses or help types
+        const matchingTickets = allOpenTickets.filter(ticket => {
+            const matchesCourse = ticket.courseId && courseIds.includes(ticket.courseId);
+            const matchesHelpType = allowedHelpTypes.length === 0 || allowedHelpTypes.includes(ticket.helpType);
+            return matchesCourse && matchesHelpType;
+        });
+
+        // Return top 3
+        return matchingTickets.slice(0, 3);
+    },
+});

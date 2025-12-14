@@ -1,22 +1,56 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { Search, TrendingUp, ArrowRight, Sparkles, Zap, Target, Briefcase } from "lucide-react";
+import { Search, TrendingUp, ArrowRight, Sparkles, Zap, Target, Briefcase, ChevronDown, Wallet, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
 import { EarningsChart } from "@/components/dashboard/EarningsChart";
-import { LottieAnimation } from "@/components/ui/lottie-animation";
-import { rocketAnimation } from "@/lib/animations";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 export default function SellerDashboard() {
+    const user = useQuery(api.users.currentUser);
+    const tutorProfile = useQuery(api.tutor_profiles.getMyProfile);
     const requests = useQuery(api.tickets.listOpen, {});
     const myOffers = useQuery(api.offers.listMyOffers, {});
+    const freshJobs = useQuery(api.tickets.matchingRecentJobs);
+    const updateStatus = useMutation(api.tutor_profiles.updateOnlineStatus);
+
+    const [statusLoading, setStatusLoading] = useState(false);
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
+    };
+
+    const handleStatusChange = async (status: "online" | "away" | "offline") => {
+        setStatusLoading(true);
+        try {
+            await updateStatus({ status });
+            toast.success(`Status updated to ${status}`);
+        } catch (error) {
+            toast.error("Failed to update status");
+        } finally {
+            setStatusLoading(false);
+        }
+    };
+
+    const getStatusDisplay = () => {
+        if (!tutorProfile) return { label: "Offline", color: "bg-gray-400" };
+        if (tutorProfile.isOnline && tutorProfile.settings?.acceptingRequests) {
+            return { label: "Online", color: "bg-emerald-500" };
+        }
+        return { label: "Offline", color: "bg-gray-400" };
+    };
 
     if (requests === undefined || myOffers === undefined) {
         return (
@@ -40,73 +74,193 @@ export default function SellerDashboard() {
         .reduce((acc, curr) => acc + curr.price, 0);
 
     const completionRate = 98;
+    const statusDisplay = getStatusDisplay();
 
     return (
         <div className="container mx-auto py-10 text-foreground">
-            {/* Header - Bold, Editorial */}
-            <header className="mb-10">
-                <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                        <h1 className="text-5xl font-bold tracking-tight text-foreground">
-                            Dashboard
+            {/* Welcome Header - Simplified */}
+            <header className="mb-8">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-2">
+                            {getGreeting()}, {user?.name?.split(" ")[0] || "there"}!
                         </h1>
-                        <p className="text-lg text-muted-foreground font-medium">
-                            Your earnings & active work at a glance.
+                        <p className="text-lg text-muted-foreground">
+                            Ready to help students today?
                         </p>
                     </div>
-                    <Link href="/search">
-                        <Button className="h-12 px-6 rounded-full bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
-                            <Search className="mr-2 h-4 w-4" />
-                            Find Jobs
-                        </Button>
-                    </Link>
+
+                    {/* Status Toggle */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="h-11 rounded-full border-foreground/10 bg-white/60 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-sm font-semibold"
+                                disabled={statusLoading}
+                            >
+                                <span className={`w-2.5 h-2.5 rounded-full ${statusDisplay.color} mr-2`} />
+                                {statusDisplay.label}
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => handleStatusChange("online")}>
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2" />
+                                Online
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange("offline")}>
+                                <span className="w-2.5 h-2.5 rounded-full bg-gray-400 mr-2" />
+                                Offline
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
 
-            {/* Hero KPI Section - Asymmetric Bento Grid */}
-            <section className="grid grid-cols-12 gap-4 mb-10">
-                {/* HERO: Total Earnings - Takes 2/3 width */}
-                <Card className="col-span-12 lg:col-span-8 glass-card shadow-glow-amber border-none overflow-hidden group">
-                    <CardContent className="p-8 relative">
-                        {/* Abstract decorative element */}
-                        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-gradient-to-br from-amber-400/20 via-orange-300/10 to-transparent blur-3xl group-hover:scale-110 transition-transform duration-700" />
-                        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-gradient-to-tr from-teal-400/10 to-transparent blur-2xl" />
+            {/* Bento Grid: Fresh Opportunities (8 cols) + KPI Stack (4 cols) */}
+            <section className="grid grid-cols-12 gap-6 mb-10">
+                {/* Fresh Opportunities - Hero Card (8 cols) */}
+                <Card className="col-span-12 lg:col-span-8 glass-card border-none relative overflow-hidden">
+                    {/* Gradient accent border */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500/20 via-transparent to-teal-500/20 p-[1px]">
+                        <div className="absolute inset-[1px] bg-white/80 dark:bg-[oklch(0.18_0.018_280)] rounded-2xl" />
+                    </div>
 
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="h-8 w-8 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                                    <Sparkles className="h-4 w-4 text-amber-600" />
-                                </div>
-                                <span className="text-sm font-semibold uppercase tracking-wider text-amber-700/80">
-                                    Total Earnings
-                                </span>
+                    <CardHeader className="relative z-10">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-amber-600" />
+                                    Fresh Opportunities
+                                </CardTitle>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    New jobs matching your expertise in the last hour
+                                </p>
                             </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="relative z-10">
+                        {!freshJobs ? (
+                            <div className="space-y-3">
+                                <Skeleton className="h-24 w-full rounded-xl" />
+                                <Skeleton className="h-24 w-full rounded-xl" />
+                            </div>
+                        ) : freshJobs.length === 0 ? (
+                            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/5 via-transparent to-teal-500/5 p-12">
+                                {/* Decorative blur orbs */}
+                                <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-400/10 blur-3xl" />
+                                <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-teal-400/10 blur-3xl" />
 
-                            <div className="flex items-baseline gap-4">
-                                <span className="text-6xl lg:text-7xl font-bold tracking-tighter text-foreground animate-count">
-                                    PKR {totalEarnings.toLocaleString()}
-                                </span>
+                                <div className="relative flex flex-col items-center justify-center text-center">
+                                    {/* Icon */}
+                                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-amber-500/15 to-teal-500/15 flex items-center justify-center mb-6 shadow-lg">
+                                        <Clock className="h-10 w-10 text-foreground/60" />
+                                    </div>
+
+                                    {/* Text */}
+                                    <h3 className="text-2xl font-bold text-foreground mb-3">
+                                        No new opportunities yet
+                                    </h3>
+                                    <p className="text-muted-foreground max-w-md mb-8 text-base leading-relaxed">
+                                        Fresh jobs matching your expertise will appear here. Check back soon or browse all available requests.
+                                    </p>
+
+                                    {/* CTA */}
+                                    <Link href="/search">
+                                        <Button variant="outline" className="rounded-full px-8 h-11 font-semibold">
+                                            <Search className="h-4 w-4 mr-2" />
+                                            Browse All Jobs
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {freshJobs.map((job) => (
+                                    <Link
+                                        key={job._id}
+                                        href={`/requests/${job._id}`}
+                                        className="block group"
+                                    >
+                                        <div className="p-4 rounded-xl bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-transparent hover:border-foreground/10 transition-all duration-300 hover:shadow-md">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-lg">🔥</span>
+                                                        <h4 className="font-semibold text-foreground group-hover:text-amber-700 transition-colors truncate">
+                                                            {job.title}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                                        {job.department && (
+                                                            <span>{job.department}</span>
+                                                        )}
+                                                        <span>•</span>
+                                                        <span>Posted {formatDistanceToNow(new Date(job._creationTime))} ago</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    {job.budget && (
+                                                        <span className="font-bold text-foreground">PKR {job.budget.toLocaleString()}</span>
+                                                    )}
+                                                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                                <Link href="/search" className="block">
+                                    <Button variant="ghost" className="w-full rounded-xl h-11 font-semibold">
+                                        Browse All Jobs <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* KPI Stack (4 cols) */}
+                <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+                    {/* Total Earnings - Tall Card */}
+                    <Card className="glass-card shadow-glow-amber border-none overflow-hidden flex-1">
+                        <CardContent className="p-8 relative h-full flex flex-col justify-between">
+                            {/* Ambient gradient */}
+                            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-gradient-to-br from-amber-400/20 via-orange-300/10 to-transparent blur-3xl" />
+                            <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-gradient-to-tr from-teal-400/10 to-transparent blur-2xl" />
+
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="h-8 w-8 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                                        <Sparkles className="h-4 w-4 text-amber-600" />
+                                    </div>
+                                    <span className="text-sm font-semibold uppercase tracking-wider text-amber-700/80">
+                                        Total Earnings
+                                    </span>
+                                </div>
+
+                                <div className="flex items-baseline gap-4 mb-4">
+                                    <span className="text-5xl lg:text-6xl font-bold tracking-tighter text-foreground">
+                                        PKR {totalEarnings.toLocaleString()}
+                                    </span>
+                                </div>
                                 <Badge className="bg-emerald-500/15 text-emerald-700 border-none font-semibold px-3 py-1.5 text-sm">
                                     <TrendingUp className="h-3.5 w-3.5 mr-1" />
                                     +12% this month
                                 </Badge>
+
+                                <p className="text-muted-foreground mt-4 text-base">
+                                    {totalEarnings > 0 ? "Great work! Keep it up." : "You're just getting started."}
+                                </p>
                             </div>
+                        </CardContent>
+                    </Card>
 
-                            <p className="text-muted-foreground mt-4 text-base">
-                                You're {totalEarnings > 0 ? "doing great!" : "just getting started."} Keep landing those gigs.
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
+                    {/* Active Jobs - Compact */}
+                    <Card className="glass-card shadow-glow-coral border-none overflow-hidden">
+                        <CardContent className="p-6 relative">
+                            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br from-rose-400/15 to-transparent blur-2xl" />
 
-                {/* Supporting KPIs - Stacked on right */}
-                <div className="col-span-12 lg:col-span-4 grid grid-rows-2 gap-4">
-                    {/* Active Jobs */}
-                    <Card className="glass-card shadow-glow-coral border-none overflow-hidden group">
-                        <CardContent className="p-6 h-full flex flex-col justify-between relative">
-                            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br from-rose-400/15 to-transparent blur-2xl group-hover:scale-125 transition-transform duration-500" />
-
-                            <div className="flex items-center gap-2 relative z-10">
+                            <div className="flex items-center gap-2 mb-3 relative z-10">
                                 <div className="h-7 w-7 rounded-lg bg-rose-500/15 flex items-center justify-center">
                                     <Zap className="h-3.5 w-3.5 text-rose-600" />
                                 </div>
@@ -116,7 +270,7 @@ export default function SellerDashboard() {
                             </div>
 
                             <div className="flex items-baseline gap-3 relative z-10">
-                                <span className="text-5xl font-bold tracking-tighter text-foreground">
+                                <span className="text-4xl font-bold tracking-tighter text-foreground">
                                     {activeJobsCount}
                                 </span>
                                 <span className="text-sm font-medium text-muted-foreground">
@@ -126,12 +280,12 @@ export default function SellerDashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* Completion Rate */}
-                    <Card className="glass-card shadow-glow-teal border-none overflow-hidden group">
-                        <CardContent className="p-6 h-full flex flex-col justify-between relative">
-                            <div className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tl from-teal-400/15 to-transparent blur-2xl group-hover:scale-125 transition-transform duration-500" />
+                    {/* Success Rate - Compact */}
+                    <Card className="glass-card shadow-glow-teal border-none overflow-hidden">
+                        <CardContent className="p-6 relative">
+                            <div className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tl from-teal-400/15 to-transparent blur-2xl" />
 
-                            <div className="flex items-center gap-2 relative z-10">
+                            <div className="flex items-center gap-2 mb-3 relative z-10">
                                 <div className="h-7 w-7 rounded-lg bg-teal-500/15 flex items-center justify-center">
                                     <Target className="h-3.5 w-3.5 text-teal-600" />
                                 </div>
@@ -141,7 +295,7 @@ export default function SellerDashboard() {
                             </div>
 
                             <div className="flex items-baseline gap-3 relative z-10">
-                                <span className="text-5xl font-bold tracking-tighter text-foreground">
+                                <span className="text-4xl font-bold tracking-tighter text-foreground">
                                     {completionRate}%
                                 </span>
                                 <Badge className="bg-teal-500/15 text-teal-700 border-none font-medium text-xs">
@@ -223,79 +377,55 @@ export default function SellerDashboard() {
                 </div>
             </section>
 
-            {/* Recommended Jobs - Magazine Style */}
+            {/* Recommended Jobs Section */}
             <section>
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-3xl font-bold tracking-tight">Recommended for You</h2>
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight text-foreground">Recommended for You</h2>
+                        <p className="text-muted-foreground mt-1">Browse requests you might be interested in</p>
+                    </div>
                     <Link href="/search">
-                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground font-medium">
-                            View all <ArrowRight className="ml-1 h-4 w-4" />
+                        <Button variant="outline" className="rounded-full">
+                            View All
+                            <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     </Link>
                 </div>
 
-                {requests.length === 0 ? (
-                    <EmptyState
-                        icon={Search}
-                        title="No jobs available"
-                        description="There are no open requests at the moment. Check back later!"
-                        action={
-                            <Link href="/search">
-                                <Button variant="outline" className="rounded-full">Browse All Jobs</Button>
-                            </Link>
-                        }
-                    />
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {requests.slice(0, 6).map((request, index) => (
-                            <Link key={request._id} href={`/requests/${request._id}`} className="block group">
-                                <Card className="glass-card border-none h-full transition-all duration-300 hover:shadow-lg overflow-hidden relative">
-                                    {/* Hover CTA - slides in from right */}
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out">
-                                        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium shadow-lg">
-                                            View Details
-                                            <ArrowRight className="h-3.5 w-3.5" />
-                                        </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {requests?.slice(0, 6).map((request) => (
+                        <Link key={request._id} href={`/requests/${request._id}`} className="group">
+                            <Card className="glass-card border-none h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                                <CardContent className="p-6">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <Badge variant="outline" className="text-xs">
+                                            {request.department || "General"}
+                                        </Badge>
+                                        {request.budget && (
+                                            <span className="font-bold text-amber-700">
+                                                PKR {request.budget.toLocaleString()}
+                                            </span>
+                                        )}
                                     </div>
 
-                                    <CardContent className="p-5 flex items-start gap-4 transition-all duration-300 group-hover:pr-32">
-                                        {/* Subtle monochromatic avatar */}
-                                        <div className="h-11 w-11 rounded-xl bg-foreground/5 border border-foreground/5 flex items-center justify-center shrink-0 group-hover:bg-foreground/10 transition-colors">
-                                            <span className="text-lg font-semibold text-foreground/60 group-hover:text-foreground/80 transition-colors">
-                                                {request.title.charAt(0).toUpperCase()}
-                                            </span>
-                                        </div>
+                                    <h3 className="font-semibold text-foreground mb-2 line-clamp-2 group-hover:text-amber-700 transition-colors">
+                                        {request.title}
+                                    </h3>
 
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="min-w-0">
-                                                    <h3 className="font-semibold text-base text-foreground group-hover:text-foreground/80 transition-colors line-clamp-1">
-                                                        {request.title}
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
-                                                        {request.description}
-                                                    </p>
-                                                </div>
-                                                {/* Price - fades out on hover */}
-                                                <div className="text-right shrink-0 transition-opacity duration-300 group-hover:opacity-0">
-                                                    <span className="block text-lg font-bold text-foreground">
-                                                        PKR {(request.budget || 0).toLocaleString()}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">Fixed</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-2.5">
-                                                <Badge variant="secondary" className="text-xs bg-foreground/5 text-muted-foreground font-normal border-none">
-                                                    General
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </Link>
-                        ))}
-                    </div>
-                )}
+                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                                        {request.description}
+                                    </p>
+
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span>{request.urgency} priority</span>
+                                        <span>•</span>
+                                        <span>{request.helpType}</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
             </section>
         </div>
     );
