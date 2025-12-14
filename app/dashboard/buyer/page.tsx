@@ -204,19 +204,33 @@ export default function BuyerDashboard() {
                     </CardHeader>
                     <CardContent>
                         {requests.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="h-16 w-16 rounded-2xl bg-foreground/5 flex items-center justify-center mb-4">
-                                    <Plus className="h-8 w-8 text-muted-foreground" />
+                            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500/5 via-transparent to-violet-500/5 p-12">
+                                {/* Decorative elements */}
+                                <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-rose-400/10 blur-3xl" />
+                                <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-violet-400/10 blur-3xl" />
+
+                                <div className="relative flex flex-col items-center justify-center text-center">
+                                    {/* Icon */}
+                                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-rose-500/15 to-violet-500/15 flex items-center justify-center mb-6 shadow-lg">
+                                        <FileText className="h-10 w-10 text-foreground/60" />
+                                    </div>
+
+                                    {/* Text */}
+                                    <h3 className="text-2xl font-bold text-foreground mb-3">
+                                        No requests yet
+                                    </h3>
+                                    <p className="text-muted-foreground max-w-md mb-8 text-base leading-relaxed">
+                                        Get help from expert tutors by posting your first request. Describe what you need and receive offers within minutes.
+                                    </p>
+
+                                    {/* CTA */}
+                                    <Link href="/requests/new">
+                                        <Button className="rounded-full px-8 h-12 bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Post Your First Request
+                                        </Button>
+                                    </Link>
                                 </div>
-                                <h3 className="text-xl font-semibold text-foreground mb-2">No requests yet</h3>
-                                <p className="text-muted-foreground max-w-sm mb-6 text-base">
-                                    Post your first request to get offers from tutors.
-                                </p>
-                                <Link href="/requests/new">
-                                    <Button className="rounded-full px-8 h-11 bg-foreground text-background hover:bg-foreground/90 font-semibold">
-                                        Post Your First Request
-                                    </Button>
-                                </Link>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -233,10 +247,10 @@ export default function BuyerDashboard() {
                                                         {request.title}
                                                     </h4>
                                                     <Badge className={`text-xs ${request.status === 'open'
-                                                            ? 'bg-emerald-500/15 text-emerald-700 border-none'
-                                                            : request.status === 'in_progress'
-                                                                ? 'bg-amber-500/15 text-amber-700 border-none'
-                                                                : 'bg-foreground/10 text-foreground border-none'
+                                                        ? 'bg-emerald-500/15 text-emerald-700 border-none'
+                                                        : request.status === 'in_progress'
+                                                            ? 'bg-amber-500/15 text-amber-700 border-none'
+                                                            : 'bg-foreground/10 text-foreground border-none'
                                                         }`}>
                                                         {request.status.replace("_", " ")}
                                                     </Badge>

@@ -22,10 +22,10 @@ export const getMyProfile = query({
 
 export const updateProfile = mutation({
     args: {
-        bio: v.string(),
-        minRate: v.number(),
-        allowedHelpTypes: v.array(v.string()),
-        acceptingRequests: v.boolean(),
+        bio: v.optional(v.string()),
+        minRate: v.optional(v.number()),
+        allowedHelpTypes: v.optional(v.array(v.string())),
+        acceptingRequests: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -44,32 +44,31 @@ export const updateProfile = mutation({
             .unique();
 
         if (profile) {
-            await ctx.db.patch(profile._id, {
-                bio: args.bio,
-                settings: {
+            const updates: any = {};
+            if (args.bio !== undefined) updates.bio = args.bio;
+            if (args.minRate !== undefined || args.allowedHelpTypes !== undefined || args.acceptingRequests !== undefined) {
+                updates.settings = {
                     ...profile.settings,
-                    minRate: args.minRate,
-                    allowedHelpTypes: args.allowedHelpTypes,
-                    acceptingRequests: args.acceptingRequests,
-                    // Preserve other settings if needed, or defaults
-                    acceptingPaid: profile.settings.acceptingPaid,
-                    acceptingFree: profile.settings.acceptingFree,
-                },
-            });
+                    ...(args.minRate !== undefined && { minRate: args.minRate }),
+                    ...(args.allowedHelpTypes !== undefined && { allowedHelpTypes: args.allowedHelpTypes }),
+                    ...(args.acceptingRequests !== undefined && { acceptingRequests: args.acceptingRequests }),
+                };
+            }
+            await ctx.db.patch(profile._id, updates);
         } else {
-            // Create new
+            // Create new - use defaults if not provided
             await ctx.db.insert("tutor_profiles", {
                 userId: user._id,
-                bio: args.bio,
+                bio: args.bio || "",
                 isOnline: true,
                 lastActiveAt: Date.now(),
                 creditBalance: 0,
                 settings: {
-                    acceptingRequests: args.acceptingRequests,
+                    acceptingRequests: args.acceptingRequests ?? true,
                     acceptingPaid: true,
                     acceptingFree: false,
-                    minRate: args.minRate,
-                    allowedHelpTypes: args.allowedHelpTypes,
+                    minRate: args.minRate ?? 500,
+                    allowedHelpTypes: args.allowedHelpTypes || [],
                 },
             });
         }

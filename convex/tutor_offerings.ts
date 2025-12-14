@@ -44,6 +44,23 @@ export const remove = mutation({
     },
 });
 
+// Update a course offering level
+export const update = mutation({
+    args: {
+        offeringId: v.id("tutor_offerings"),
+        level: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx);
+        const offering = await ctx.db.get(args.offeringId);
+
+        if (!offering) throw new Error("Offering not found");
+        if (offering.tutorId !== user._id) throw new Error("Unauthorized");
+
+        await ctx.db.patch(args.offeringId, { level: args.level });
+    },
+});
+
 // Get my offerings
 export const listMyOfferings = query({
     handler: async (ctx) => {

@@ -80,7 +80,7 @@ export default function SearchPage() {
                         <Input
                             type="search"
                             placeholder="Search by title..."
-                            className="pl-11 pr-4 h-12 w-full rounded-full bg-white/80 border-foreground/10 focus:border-foreground/20 shadow-sm"
+                            className="pl-11 pr-4 h-12 w-full rounded-full bg-white/80 dark:bg-white/5 border-foreground/10 focus:border-foreground/20 shadow-sm backdrop-blur-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -94,7 +94,7 @@ export default function SearchPage() {
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="outline"
-                                className={`h-10 rounded-full border-foreground/10 bg-white/60 hover:bg-white/80 ${department !== "all" ? "border-foreground/30 bg-foreground/5" : ""}`}
+                                className={`h-10 rounded-full border-foreground/10 bg-white/60 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-sm ${department !== "all" ? "border-foreground/30 dark:border-foreground/20 bg-foreground/5 dark:bg-foreground/10" : ""}`}
                             >
                                 {getDepartmentLabel()}
                                 <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
@@ -118,7 +118,7 @@ export default function SearchPage() {
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="outline"
-                                className={`h-10 rounded-full border-foreground/10 bg-white/60 hover:bg-white/80 ${helpType !== "all" ? "border-foreground/30 bg-foreground/5" : ""}`}
+                                className={`h-10 rounded-full border-foreground/10 bg-white/60 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-sm ${helpType !== "all" ? "border-foreground/30 dark:border-foreground/20 bg-foreground/5 dark:bg-foreground/10" : ""}`}
                             >
                                 {getHelpTypeLabel()}
                                 <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />

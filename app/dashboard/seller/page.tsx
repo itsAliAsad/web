@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Search, TrendingUp, ArrowRight, Sparkles, Zap, Target } from "lucide-react";
+import { Search, TrendingUp, ArrowRight, Sparkles, Zap, Target, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -162,17 +162,33 @@ export default function SellerDashboard() {
                     </CardHeader>
                     <CardContent>
                         {myOffers.filter(o => o.status === "accepted").length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <LottieAnimation animationData={rocketAnimation} className="h-40 w-40 mb-4 opacity-80" />
-                                <h3 className="text-xl font-semibold text-foreground mb-2">No active jobs yet</h3>
-                                <p className="text-muted-foreground max-w-sm mb-6 text-base">
-                                    You don't have any jobs in progress. Browse available requests to get started.
-                                </p>
-                                <Link href="/search">
-                                    <Button className="rounded-full px-8 h-11 bg-foreground text-background hover:bg-foreground/90 font-semibold">
-                                        Find Your First Job
-                                    </Button>
-                                </Link>
+                            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/5 via-transparent to-teal-500/5 p-12">
+                                {/* Decorative elements */}
+                                <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-400/10 blur-3xl" />
+                                <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-teal-400/10 blur-3xl" />
+
+                                <div className="relative flex flex-col items-center justify-center text-center">
+                                    {/* Icon */}
+                                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-amber-500/15 to-teal-500/15 flex items-center justify-center mb-6 shadow-lg">
+                                        <Briefcase className="h-10 w-10 text-foreground/60" />
+                                    </div>
+
+                                    {/* Text */}
+                                    <h3 className="text-2xl font-bold text-foreground mb-3">
+                                        No active jobs yet
+                                    </h3>
+                                    <p className="text-muted-foreground max-w-md mb-8 text-base leading-relaxed">
+                                        Start earning by browsing available requests and placing your bids. Students are waiting for your expertise.
+                                    </p>
+
+                                    {/* CTA */}
+                                    <Link href="/search">
+                                        <Button className="rounded-full px-8 h-12 bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                            <Sparkles className="h-4 w-4 mr-2" />
+                                            Browse Available Jobs
+                                        </Button>
+                                    </Link>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-3">
