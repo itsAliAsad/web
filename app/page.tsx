@@ -13,7 +13,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isSignedIn) {
-      if (role === "buyer") {
+      if (role === "student") {
         router.push("/dashboard/buyer");
       } else {
         router.push("/dashboard/seller");

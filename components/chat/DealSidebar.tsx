@@ -16,6 +16,8 @@ import { PanelRight } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import TicketHistorySection from "./TicketHistorySection";
+import { Separator } from "@/components/ui/separator";
 
 interface DealSidebarProps {
     otherUserId: Id<"users">;
@@ -75,8 +77,14 @@ export default function DealSidebar({ otherUserId }: DealSidebarProps) {
                             ))}
                         </div>
                     )}
+
+                    <Separator className="my-6" />
+
+                    {/* Ticket History Section */}
+                    <TicketHistorySection tutorId={otherUserId} />
                 </ScrollArea>
             </SheetContent>
         </Sheet>
     );
 }
+

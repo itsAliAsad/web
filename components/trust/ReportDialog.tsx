@@ -27,7 +27,7 @@ import { Flag } from "lucide-react";
 
 interface ReportDialogProps {
     targetId: Id<"users">;
-    requestId?: Id<"requests">;
+    requestId?: Id<"tickets">; // Keep prop name for backward compat but use tickets type
 }
 
 export default function ReportDialog({ targetId, requestId }: ReportDialogProps) {
@@ -45,7 +45,7 @@ export default function ReportDialog({ targetId, requestId }: ReportDialogProps)
         try {
             await createReport({
                 targetId,
-                requestId,
+                ticketId: requestId, // Map prop to new field name
                 reason,
                 description,
             });

@@ -8,12 +8,12 @@ export const getStats = query({
         await requireAdmin(ctx);
 
         const usersCount = (await ctx.db.query("users").collect()).length;
-        const requestsCount = (await ctx.db.query("requests").collect()).length;
+        const ticketsCount = (await ctx.db.query("tickets").collect()).length;
         const reportsCount = (await ctx.db.query("reports").collect()).length;
 
         return {
             usersCount,
-            requestsCount,
+            requestsCount: ticketsCount, // Backward compat for frontend
             reportsCount,
         };
     },
@@ -93,5 +93,37 @@ export const setVerification = mutation({
             verifiedBy: args.isVerified ? admin._id : undefined,
             verifiedAt: args.isVerified ? Date.now() : undefined,
         });
+    },
+});
+
+export const setAdmin = mutation({
+    args: { userId: v.id("users"), isAdmin: v.boolean() },
+    handler: async (ctx, args) => {
+        await requireAdmin(ctx);
+        await ctx.db.patch(args.userId, { isAdmin: args.isAdmin });
+    },
+});
+
+export const getAuditLogs = query({
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        await requireAdmin(ctx);
+
+        const logs = await ctx.db
+            .query("audit_logs")
+            .order("desc")
+            .take(args.limit || 100);
+
+        // Enrich with actor info
+        return await Promise.all(
+            logs.map(async (log) => {
+                const actor = log.actorId ? await ctx.db.get(log.actorId) : null;
+                return {
+                    ...log,
+                    actorName: actor?.name,
+                    actorEmail: actor?.email,
+                };
+            })
+        );
     },
 });

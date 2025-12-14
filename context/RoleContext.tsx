@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from "r
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-type Role = "buyer" | "seller";
+type Role = "student" | "tutor";
 
 interface RoleContextType {
     role: Role;
@@ -15,7 +15,7 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-    const [role, setRoleState] = useState<Role>("buyer");
+    const [role, setRoleState] = useState<Role>("student");
     const hydratedRef = useRef(false);
     const user = useQuery(api.users.currentUser);
     const setRoleMutation = useMutation(api.users.setRole);
@@ -25,7 +25,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
 
         const savedRole = localStorage.getItem("path_user_role") as Role;
-        const derivedRole = (user.role as Role) || savedRole || "buyer";
+        // Map legacy roles to new ones (cast to string to handle old data)
+        const roleStr = user.role as string;
+        const userRole: Role = roleStr === "buyer" ? "student" :
+            roleStr === "seller" ? "tutor" :
+                roleStr === "student" ? "student" :
+                    roleStr === "tutor" ? "tutor" : "student";
+        const derivedRole = userRole || savedRole || "student";
 
         setRoleState(derivedRole);
         localStorage.setItem("path_user_role", derivedRole);
@@ -50,7 +56,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     };
 
     const toggleRole = async () => {
-        const newRole = role === "buyer" ? "seller" : "buyer";
+        const newRole = role === "student" ? "tutor" : "student";
         await setRole(newRole);
     };
 

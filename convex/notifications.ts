@@ -54,7 +54,7 @@ export const create = mutation({
         type: v.union(
             v.literal("offer_received"),
             v.literal("offer_accepted"),
-            v.literal("request_completed"),
+            v.literal("ticket_resolved"),
             v.literal("new_message")
         ),
         data: v.any(),

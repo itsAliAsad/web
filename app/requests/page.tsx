@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 
 export default function MyRequestsPage() {
-    const requests = useQuery(api.requests.listMyRequests, {});
+    const requests = useQuery(api.tickets.listMyRequests, {});
 
     if (requests === undefined) {
         return (
@@ -72,7 +72,7 @@ export default function MyRequestsPage() {
                                             <Badge variant={
                                                 request.status === "open" ? "default" :
                                                     request.status === "in_progress" ? "secondary" :
-                                                        request.status === "completed" ? "outline" : "destructive"
+                                                        request.status === "resolved" ? "outline" : "destructive"
                                             }>
                                                 {request.status.replace("_", " ")}
                                             </Badge>

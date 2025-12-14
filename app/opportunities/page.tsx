@@ -35,6 +35,8 @@ import Filters from "@/components/search/Filters";
 export default function OpportunitiesPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [category, setCategory] = useState<string | undefined>();
+    const [department, setDepartment] = useState<string | undefined>();
+    const [helpType, setHelpType] = useState<string | undefined>();
 
     // Decide which query to use
     const isSearching = !!searchQuery;
@@ -46,18 +48,18 @@ export default function OpportunitiesPage() {
     // Better approach: Use a single query that handles both? No, search is special.
     // Let's just fetch based on state.
 
-    const searchResults = useQuery(api.requests.search,
-        isSearching ? { query: searchQuery, category } : "skip"
+    const searchResults = useQuery(api.tickets.search,
+        isSearching ? { query: searchQuery, helpType, department } : "skip"
     );
 
-    const listResults = useQuery(api.requests.listOpen,
-        !isSearching ? { category } : "skip"
+    const listResults = useQuery(api.tickets.listOpen,
+        !isSearching ? { helpType, department } : "skip"
     );
 
     const requests = isSearching ? searchResults : listResults;
 
     const createOffer = useMutation(api.offers.create);
-    const [selectedRequest, setSelectedRequest] = useState<Id<"requests"> | null>(
+    const [selectedRequest, setSelectedRequest] = useState<Id<"tickets"> | null>(
         null
     );
     const [offerPrice, setOfferPrice] = useState("");
@@ -69,7 +71,7 @@ export default function OpportunitiesPage() {
         setIsSubmitting(true);
         try {
             await createOffer({
-                requestId: selectedRequest,
+                ticketId: selectedRequest,
                 price: Number(offerPrice),
             });
             toast.success("Offer sent successfully!");
@@ -91,7 +93,14 @@ export default function OpportunitiesPage() {
                     <div className="w-full md:w-64">
                         <SearchBar onSearch={setSearchQuery} />
                     </div>
-                    <Filters category={category} setCategory={setCategory} />
+                    <Filters
+                        department={department}
+                        setDepartment={setDepartment}
+                        helpType={helpType}
+                        setHelpType={setHelpType}
+                        category={category}
+                        setCategory={setCategory}
+                    />
                 </div>
             </div>
 
@@ -112,11 +121,11 @@ export default function OpportunitiesPage() {
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <CardTitle className="text-lg">{request.title}</CardTitle>
-                                    <Badge>{request.category}</Badge>
+                                    <Badge>{request.helpType || request.customCategory || 'General'}</Badge>
                                 </div>
                                 <CardDescription>
-                                    Budget: PKR {request.budget} • Due:{" "}
-                                    {new Date(request.deadline).toLocaleDateString()}
+                                    Budget: PKR {request.budget ?? 0} • Due:{" "}
+                                    {request.deadline ? new Date(request.deadline).toLocaleDateString() : "No deadline"}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow">
@@ -153,7 +162,7 @@ export default function OpportunitiesPage() {
                                                     value={offerPrice}
                                                     onChange={(e) => setOfferPrice(e.target.value)}
                                                     className="col-span-3"
-                                                    placeholder={request.budget.toString()}
+                                                    placeholder={(request.budget ?? 0).toString()}
                                                 />
                                             </div>
                                         </div>

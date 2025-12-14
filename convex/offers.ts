@@ -4,23 +4,23 @@ import { requireUser } from "./utils";
 
 export const create = mutation({
     args: {
-        requestId: v.id("requests"),
+        ticketId: v.id("tickets"),
         price: v.number(),
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
 
-        // Check if request exists and is open
-        const request = await ctx.db.get(args.requestId);
-        if (!request || request.status !== "open") {
-            throw new Error("Request not available");
+        // Check if ticket exists and is open
+        const ticket = await ctx.db.get(args.ticketId);
+        if (!ticket || ticket.status !== "open") {
+            throw new Error("Ticket not available");
         }
 
         // Check if user already offered
         const existingOffer = await ctx.db
             .query("offers")
-            .withIndex("by_request_and_seller", (q) =>
-                q.eq("requestId", args.requestId).eq("sellerId", user._id)
+            .withIndex("by_ticket_and_tutor", (q) =>
+                q.eq("ticketId", args.ticketId).eq("tutorId", user._id)
             )
             .unique();
 
@@ -29,18 +29,18 @@ export const create = mutation({
         }
 
         const offerId = await ctx.db.insert("offers", {
-            requestId: args.requestId,
-            buyerId: request.buyerId,
-            sellerId: user._id,
+            ticketId: args.ticketId,
+            studentId: ticket.studentId,
+            tutorId: user._id,
             price: args.price,
             status: "pending",
         });
 
-        // Notify buyer
+        // Notify student
         await ctx.db.insert("notifications", {
-            userId: request.buyerId,
+            userId: ticket.studentId,
             type: "offer_received",
-            data: { requestId: args.requestId, offerId },
+            data: { ticketId: args.ticketId, offerId },
             isRead: false,
             createdAt: Date.now(),
         });
@@ -49,22 +49,50 @@ export const create = mutation({
     },
 });
 
-export const listByRequest = query({
-    args: { requestId: v.id("requests") },
+// Primary function with new name
+export const listByTicket = query({
+    args: { ticketId: v.id("tickets") },
     handler: async (ctx, args) => {
-        // In a real app, verify the user is the buyer of the request
         const offers = await ctx.db
             .query("offers")
-            .withIndex("by_request", (q) => q.eq("requestId", args.requestId))
+            .withIndex("by_ticket", (q) => q.eq("ticketId", args.ticketId))
             .collect();
 
         return await Promise.all(
             offers.map(async (offer) => {
-                const seller = await ctx.db.get(offer.sellerId);
+                const tutor = await ctx.db.get(offer.tutorId);
                 return {
                     ...offer,
-                    sellerName: seller?.name,
-                    sellerIsVerified: Boolean(seller?.isVerified),
+                    tutorName: tutor?.name,
+                    tutorId: offer.tutorId,
+                    sellerName: tutor?.name, // Legacy alias
+                    sellerId: offer.tutorId, // Legacy alias
+                    sellerIsVerified: Boolean(tutor?.isVerified),
+                };
+            })
+        );
+    },
+});
+
+// Backward compat alias
+export const listByRequest = query({
+    args: { requestId: v.id("tickets") },
+    handler: async (ctx, args) => {
+        const offers = await ctx.db
+            .query("offers")
+            .withIndex("by_ticket", (q) => q.eq("ticketId", args.requestId))
+            .collect();
+
+        return await Promise.all(
+            offers.map(async (offer) => {
+                const tutor = await ctx.db.get(offer.tutorId);
+                return {
+                    ...offer,
+                    tutorName: tutor?.name,
+                    tutorId: offer.tutorId,
+                    sellerName: tutor?.name,
+                    sellerId: offer.tutorId,
+                    sellerIsVerified: Boolean(tutor?.isVerified),
                 };
             })
         );
@@ -74,27 +102,32 @@ export const listByRequest = query({
 export const accept = mutation({
     args: {
         offerId: v.id("offers"),
-        requestId: v.id("requests"),
+        ticketId: v.optional(v.id("tickets")),
+        requestId: v.optional(v.id("tickets")), // Legacy alias
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
 
-        const request = await ctx.db.get(args.requestId);
-        if (!request) throw new Error("Request not found");
-        if (user._id !== request.buyerId) {
+        // Support both ticketId and requestId for backward compat
+        const resolvedTicketId = args.ticketId || args.requestId;
+        if (!resolvedTicketId) throw new Error("ticketId is required");
+
+        const ticket = await ctx.db.get(resolvedTicketId);
+        if (!ticket) throw new Error("Ticket not found");
+        if (user._id !== ticket.studentId) {
             throw new Error("Unauthorized");
         }
 
         // Update offer status
         await ctx.db.patch(args.offerId, { status: "accepted" });
 
-        // Update request status
-        await ctx.db.patch(args.requestId, { status: "in_progress" });
+        // Update ticket status
+        await ctx.db.patch(resolvedTicketId, { status: "in_session" });
 
         // Reject other offers
         const otherOffers = await ctx.db
             .query("offers")
-            .withIndex("by_request", (q) => q.eq("requestId", args.requestId))
+            .withIndex("by_ticket", (q) => q.eq("ticketId", resolvedTicketId))
             .collect();
 
         for (const offer of otherOffers) {
@@ -105,17 +138,17 @@ export const accept = mutation({
 
         // Create conversation if it doesn't exist
         const offer = await ctx.db.get(args.offerId);
-        if (!offer) throw new Error("Offer not found"); // Should not happen
+        if (!offer) throw new Error("Offer not found");
 
         const existing1 = await ctx.db
             .query("conversations")
             .withIndex("by_participant1", (q) => q.eq("participant1", user._id))
-            .filter((q) => q.eq(q.field("participant2"), offer.sellerId))
+            .filter((q) => q.eq(q.field("participant2"), offer.tutorId))
             .first();
 
         const existing2 = await ctx.db
             .query("conversations")
-            .withIndex("by_participant1", (q) => q.eq("participant1", offer.sellerId))
+            .withIndex("by_participant1", (q) => q.eq("participant1", offer.tutorId))
             .filter((q) => q.eq(q.field("participant2"), user._id))
             .first();
 
@@ -124,16 +157,16 @@ export const accept = mutation({
         if (!conversationId) {
             conversationId = await ctx.db.insert("conversations", {
                 participant1: user._id,
-                participant2: offer.sellerId,
+                participant2: offer.tutorId,
                 updatedAt: Date.now(),
             });
         }
 
-        // Notify seller
+        // Notify tutor
         await ctx.db.insert("notifications", {
-            userId: offer.sellerId,
+            userId: offer.tutorId,
             type: "offer_accepted",
-            data: { requestId: args.requestId, offerId: args.offerId },
+            data: { ticketId: resolvedTicketId, offerId: args.offerId },
             isRead: false,
             createdAt: Date.now(),
         });
@@ -145,59 +178,53 @@ export const listMyOffers = query({
     handler: async (ctx) => {
         const user = await requireUser(ctx);
 
-        // Note: This requires an index on sellerId if we want to be efficient
-        // For now, we can filter or just add the index.
-        // Let's check schema.ts later. For MVP, filtering might be okay if volume is low,
-        // but adding an index is better.
-        // Actually, we don't have an index by sellerId in the schema snippet I recall.
-        // Let's just use filter for now or add index.
-        // Wait, I can't see schema.ts right now. I'll assume I can filter.
-        // Actually, better to add the index.
-
         const offers = await ctx.db
             .query("offers")
-            .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
+            .withIndex("by_tutor", (q) => q.eq("tutorId", user._id))
             .collect();
 
         return await Promise.all(
             offers.map(async (offer) => {
-                const request = await ctx.db.get(offer.requestId);
+                const ticket = await ctx.db.get(offer.ticketId);
                 return {
                     ...offer,
-                    requestTitle: request?.title || "Unknown Request",
+                    requestTitle: ticket?.title || "Unknown Ticket",
+                    requestId: offer.ticketId, // Alias for backward compat
                 };
             })
         );
     },
 });
+
 export const listBetweenUsers = query({
     args: { otherUserId: v.id("users") },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
 
-        const iAmBuyer = await ctx.db
+        const iAmStudent = await ctx.db
             .query("offers")
-            .withIndex("by_buyer_and_seller", (q) =>
-                q.eq("buyerId", user._id).eq("sellerId", args.otherUserId)
+            .withIndex("by_student_and_tutor", (q) =>
+                q.eq("studentId", user._id).eq("tutorId", args.otherUserId)
             )
             .collect();
 
-        const iAmSeller = await ctx.db
+        const iAmTutor = await ctx.db
             .query("offers")
-            .withIndex("by_buyer_and_seller", (q) =>
-                q.eq("buyerId", args.otherUserId).eq("sellerId", user._id)
+            .withIndex("by_student_and_tutor", (q) =>
+                q.eq("studentId", args.otherUserId).eq("tutorId", user._id)
             )
             .collect();
 
-        const allOffers = [...iAmBuyer, ...iAmSeller];
+        const allOffers = [...iAmStudent, ...iAmTutor];
 
         return await Promise.all(
             allOffers.map(async (offer) => {
-                const request = await ctx.db.get(offer.requestId);
+                const ticket = await ctx.db.get(offer.ticketId);
                 return {
                     ...offer,
-                    requestTitle: request?.title,
-                    requestDescription: request?.description,
+                    requestTitle: ticket?.title,
+                    requestDescription: ticket?.description,
+                    requestId: offer.ticketId, // Alias
                 };
             })
         );
@@ -209,27 +236,26 @@ export const listOffersForBuyer = query({
     handler: async (ctx) => {
         const user = await requireUser(ctx);
 
-        // Get all requests by this user
-        const requests = await ctx.db
-            .query("requests")
-            .withIndex("by_buyer", (q) => q.eq("buyerId", user._id))
+        // Get all tickets by this user (as student)
+        const tickets = await ctx.db
+            .query("tickets")
+            .withIndex("by_student", (q) => q.eq("studentId", user._id))
             .collect();
 
-        if (requests.length === 0) return [];
+        if (tickets.length === 0) return [];
 
-        // Get offers for these requests
-        // This could be optimized with an index on offers by request, which we have.
-        // We can do parallel queries.
+        // Get offers for these tickets
         const offers = await Promise.all(
-            requests.map(async (request) => {
-                const requestOffers = await ctx.db
+            tickets.map(async (ticket) => {
+                const ticketOffers = await ctx.db
                     .query("offers")
-                    .withIndex("by_request", (q) => q.eq("requestId", request._id))
+                    .withIndex("by_ticket", (q) => q.eq("ticketId", ticket._id))
                     .collect();
 
-                return requestOffers.map(offer => ({
+                return ticketOffers.map(offer => ({
                     ...offer,
-                    requestTitle: request.title,
+                    requestTitle: ticket.title,
+                    requestId: offer.ticketId, // Alias for backward compat
                 }));
             })
         );

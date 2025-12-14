@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,9 +9,15 @@ import Navbar from "@/components/layout/Navbar";
 import AnnouncementsBar from "@/components/layout/AnnouncementsBar";
 import BannedBanner from "@/components/layout/BannedBanner";
 
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
 
-
-const inter = Inter({ subsets: ["latin"] });
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "Path - P2P Academic Marketplace",
@@ -25,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} mesh-bg min-h-screen`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans mesh-bg min-h-screen antialiased`}>
         <ConvexClientProvider>
           <RoleProvider>
             <Navbar />

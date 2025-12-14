@@ -42,20 +42,21 @@ export default function NotificationDropdown() {
         }
 
         // Navigate based on type
+        const ticketId = notification.data?.ticketId || notification.data?.requestId;
         switch (notification.type) {
             case "offer_received":
-                if (notification.data?.requestId) {
-                    router.push(`/requests/${notification.data.requestId}`);
+                if (ticketId) {
+                    router.push(`/requests/${ticketId}`);
                 }
                 break;
             case "offer_accepted":
-                if (notification.data?.requestId) {
-                    router.push(`/requests/${notification.data.requestId}`);
+                if (ticketId) {
+                    router.push(`/requests/${ticketId}`);
                 }
                 break;
-            case "request_completed":
-                if (notification.data?.requestId) {
-                    router.push(`/requests/${notification.data.requestId}`);
+            case "ticket_resolved":
+                if (ticketId) {
+                    router.push(`/requests/${ticketId}`);
                 }
                 break;
             case "new_message":
@@ -110,7 +111,7 @@ export default function NotificationDropdown() {
                             <div className="font-medium text-sm">
                                 {notification.type === "offer_received" && "New Offer Received"}
                                 {notification.type === "offer_accepted" && "Offer Accepted"}
-                                {notification.type === "request_completed" && "Request Completed"}
+                                {notification.type === "ticket_resolved" && "Ticket Resolved"}
                                 {notification.type === "new_message" && "New Message"}
                             </div>
                             <div className="text-xs text-muted-foreground">

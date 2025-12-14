@@ -1,8 +1,8 @@
 "use client"
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { TrendingDown } from "lucide-react"
 
 const data = [
     { name: "Jan", total: Math.floor(Math.random() * 2000) + 500 },
@@ -14,47 +14,107 @@ const data = [
 ]
 
 export function SpendingChart() {
+    const total = data.reduce((acc, curr) => acc + curr.total, 0)
+
     return (
-        <Card className="glass-card">
-            <CardHeader>
-                <CardTitle>Spending Overview</CardTitle>
-                <CardDescription>Monthly spending for the current year.</CardDescription>
+        <Card className="glass-card border-none shadow-glow-coral h-full flex flex-col overflow-hidden">
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle className="text-xl font-bold tracking-tight">Spending</CardTitle>
+                        <CardDescription className="text-sm">Your 6-month overview</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-rose-600">
+                        <TrendingDown className="h-4 w-4" />
+                        <span>-8%</span>
+                    </div>
+                </div>
+                <div className="pt-2">
+                    <span className="text-3xl font-bold tracking-tight text-foreground">
+                        PKR {total.toLocaleString()}
+                    </span>
+                    <span className="text-sm text-muted-foreground ml-2">total</span>
+                </div>
             </CardHeader>
-            <CardContent className="pl-2">
-                <ChartContainer config={{
-                    total: {
-                        label: "Spending",
-                        color: "var(--chart-2)",
-                    },
-                }} className="h-[350px] w-full">
-                    <BarChart data={data}>
+            <CardContent className="flex-1 pt-0 pb-4 px-2 min-h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                        data={data}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
                         <defs>
-                            <linearGradient id="colorSpending" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.8} />
-                                <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                            <linearGradient id="spendingGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="oklch(0.65 0.20 30)" stopOpacity={0.4} />
+                                <stop offset="50%" stopColor="oklch(0.65 0.20 30)" stopOpacity={0.15} />
+                                <stop offset="100%" stopColor="oklch(0.65 0.20 30)" stopOpacity={0.02} />
+                            </linearGradient>
+                            <linearGradient id="spendingLineGradient" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="oklch(0.68 0.18 35)" />
+                                <stop offset="50%" stopColor="oklch(0.65 0.20 30)" />
+                                <stop offset="100%" stopColor="oklch(0.72 0.19 45)" />
                             </linearGradient>
                         </defs>
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke="rgba(0,0,0,0.04)"
+                        />
                         <XAxis
                             dataKey="name"
-                            stroke="var(--muted-foreground)"
+                            stroke="#888888"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
+                            dy={10}
                         />
                         <YAxis
-                            stroke="var(--muted-foreground)"
-                            fontSize={12}
+                            stroke="#888888"
+                            fontSize={11}
                             tickLine={false}
                             axisLine={false}
-                            tickFormatter={(value) => `$${value}`}
+                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                            width={35}
                         />
-                        <ChartTooltip
-                            content={<ChartTooltipContent indicator="line" className="glass-card border-white/20" />}
-                            cursor={{ fill: 'var(--muted)', opacity: 0.2 }}
+                        <Tooltip
+                            cursor={{ stroke: 'rgba(0,0,0,0.1)', strokeWidth: 1 }}
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="rounded-xl bg-white/95 backdrop-blur-xl p-4 shadow-xl border border-white/50 ring-1 ring-black/5">
+                                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                                {payload[0].payload.name}
+                                            </p>
+                                            <p className="text-2xl font-bold text-foreground">
+                                                PKR {Number(payload[0].value).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    )
+                                }
+                                return null
+                            }}
                         />
-                        <Bar dataKey="total" fill="url(#colorSpending)" radius={[6, 6, 0, 0]} maxBarSize={50} />
-                    </BarChart>
-                </ChartContainer>
+                        <Area
+                            type="monotone"
+                            dataKey="total"
+                            stroke="url(#spendingLineGradient)"
+                            strokeWidth={3}
+                            fill="url(#spendingGradient)"
+                            dot={{
+                                r: 4,
+                                fill: 'white',
+                                stroke: 'oklch(0.65 0.20 30)',
+                                strokeWidth: 2,
+                            }}
+                            activeDot={{
+                                r: 6,
+                                fill: 'oklch(0.65 0.20 30)',
+                                stroke: 'white',
+                                strokeWidth: 3,
+                                className: 'drop-shadow-lg'
+                            }}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
             </CardContent>
         </Card>
     )

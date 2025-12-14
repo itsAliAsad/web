@@ -19,6 +19,7 @@ export default function AdminPage() {
     const createAnnouncement = useMutation(api.admin.createAnnouncement);
     const announcements = useQuery(api.admin.listAnnouncements);
     const setAnnouncementStatus = useMutation(api.admin.setAnnouncementStatus);
+    const auditLogs = useQuery(api.admin.getAuditLogs, { limit: 50 });
     const [announcementTitle, setAnnouncementTitle] = useState("");
     const [announcementContent, setAnnouncementContent] = useState("");
 
@@ -84,6 +85,7 @@ export default function AdminPage() {
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="users">Users</TabsTrigger>
                         <TabsTrigger value="reports">Reports</TabsTrigger>
+                        <TabsTrigger value="audit">Audit Logs</TabsTrigger>
                     </TabsList>
                     <TabsContent value="overview" className="space-y-4">
                         <Card>
@@ -144,6 +146,49 @@ export default function AdminPage() {
                     </TabsContent>
                     <TabsContent value="reports">
                         <ReportsTable />
+                    </TabsContent>
+                    <TabsContent value="audit">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Audit Logs</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b">
+                                                <th className="text-left p-2">Time</th>
+                                                <th className="text-left p-2">Actor</th>
+                                                <th className="text-left p-2">Action</th>
+                                                <th className="text-left p-2">Target</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {auditLogs?.length ? (
+                                                auditLogs.map((log) => (
+                                                    <tr key={log._id} className="border-b hover:bg-muted/50">
+                                                        <td className="p-2 text-muted-foreground">
+                                                            {new Date(log.createdAt).toLocaleString()}
+                                                        </td>
+                                                        <td className="p-2">{log.actorName || "System"}</td>
+                                                        <td className="p-2 font-mono text-xs">{log.action}</td>
+                                                        <td className="p-2 text-muted-foreground">
+                                                            {log.targetType || "-"}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                                                        No audit logs yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>

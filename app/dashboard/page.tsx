@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 
 export default function DashboardPage() {
-    const requests = useQuery(api.requests.listMyRequests);
+    const requests = useQuery(api.tickets.listMyRequests);
 
     return (
         <div className="container mx-auto py-10">
@@ -46,7 +46,7 @@ export default function DashboardPage() {
                                             variant={
                                                 request.status === "open"
                                                     ? "default"
-                                                    : request.status === "completed"
+                                                    : request.status === "resolved"
                                                         ? "secondary"
                                                         : "outline"
                                             }
@@ -55,7 +55,7 @@ export default function DashboardPage() {
                                         </Badge>
                                     </div>
                                     <CardDescription>
-                                        Due: {new Date(request.deadline).toLocaleDateString()}
+                                        {request.deadline ? `Due: ${new Date(request.deadline).toLocaleDateString()}` : "No deadline"}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -65,7 +65,7 @@ export default function DashboardPage() {
                                     <div className="flex justify-between items-center text-sm font-medium">
                                         <span>PKR {request.budget}</span>
                                         <span className="text-xs text-gray-500">
-                                            {request.category}
+                                            {request.helpType || request.customCategory || "General"}
                                         </span>
                                     </div>
                                 </CardContent>

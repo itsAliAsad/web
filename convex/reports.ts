@@ -5,7 +5,7 @@ import { requireAdmin, requireUser } from "./utils";
 export const create = mutation({
     args: {
         targetId: v.id("users"),
-        requestId: v.optional(v.id("requests")),
+        ticketId: v.optional(v.id("tickets")),
         reason: v.string(),
         description: v.optional(v.string()),
     },
@@ -15,7 +15,7 @@ export const create = mutation({
         await ctx.db.insert("reports", {
             reporterId: user._id,
             targetId: args.targetId,
-            requestId: args.requestId,
+            ticketId: args.ticketId,
             reason: args.reason,
             description: args.description,
             status: "pending",

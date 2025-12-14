@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import PortfolioSection from "@/components/portfolio/PortfolioSection";
 import CoursesSection from "@/components/portfolio/CoursesSection";
+import ExpertiseSection from "@/components/profile/ExpertiseSection";
 import VerifiedBadge from "@/components/trust/VerifiedBadge";
 import ReportDialog from "@/components/trust/ReportDialog";
 import EditProfileDialog from "@/components/profile/EditProfileDialog";
@@ -95,6 +96,9 @@ export default function PublicProfilePage() {
             </div>
 
             <div className="space-y-12">
+                {user.role === "tutor" && (
+                    <ExpertiseSection userId={user._id} isOwner={isOwner} />
+                )}
                 <PortfolioSection userId={user._id} isOwner={isOwner} />
                 <CoursesSection userId={user._id} isOwner={isOwner} />
             </div>

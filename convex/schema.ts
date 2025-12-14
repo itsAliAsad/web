@@ -2,21 +2,24 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+    // ==========================================
+    // 1. IDENTITY (Merged User Table)
+    // ==========================================
     users: defineTable({
         name: v.string(),
         email: v.string(),
         tokenIdentifier: v.string(), // Clerk ID
         image: v.optional(v.string()),
         bio: v.optional(v.string()),
-        university: v.optional(v.string()), // For .edu check later
+        university: v.optional(v.string()), // e.g. "LUMS"
         reputation: v.number(), // Aggregated rating
         ratingSum: v.optional(v.number()),
         ratingCount: v.optional(v.number()),
         termsAcceptedAt: v.optional(v.string()),
-        role: v.optional(v.union(v.literal("buyer"), v.literal("seller"))), // Can be both, but primary intent
-        isVerified: v.optional(v.boolean()), // Added isVerified
-        isAdmin: v.optional(v.boolean()), // Added isAdmin
-        isBanned: v.optional(v.boolean()), // Added isBanned
+        role: v.union(v.literal("student"), v.literal("tutor"), v.literal("admin")),
+        isVerified: v.optional(v.boolean()),
+        isAdmin: v.optional(v.boolean()),
+        isBanned: v.optional(v.boolean()),
         verifiedAt: v.optional(v.number()),
         verifiedBy: v.optional(v.id("users")),
 
@@ -53,33 +56,105 @@ export default defineSchema({
         deletedAt: v.optional(v.number()),
     }).index("by_token", ["tokenIdentifier"]),
 
-    requests: defineTable({
-        buyerId: v.id("users"),
+    // ==========================================
+    // 2. TUTOR PROFILE (Separated from Users)
+    // ==========================================
+    tutor_profiles: defineTable({
+        userId: v.id("users"),
+        bio: v.string(),
+        isOnline: v.boolean(), // Presence System
+        lastActiveAt: v.number(),
+        creditBalance: v.number(),
+        settings: v.object({
+            acceptingRequests: v.boolean(),
+            acceptingPaid: v.boolean(),
+            acceptingFree: v.boolean(),
+            minRate: v.number(),
+            allowedHelpTypes: v.array(v.string()), // ["Debugging", "Concept"]
+        }),
+    }).index("by_user", ["userId"]),
+
+    // ==========================================
+    // 3. UNIVERSITY CATALOG
+    // ==========================================
+    university_courses: defineTable({
+        code: v.string(), // "CS 101"
+        name: v.string(), // "Intro to Computing"
+        department: v.optional(v.string()),
+        isActive: v.boolean(),
+    }).searchIndex("search_course", { searchField: "code" }),
+
+    // ==========================================
+    // 4. TUTOR OFFERINGS (Relationship Table)
+    // ==========================================
+    tutor_offerings: defineTable({
+        tutorId: v.id("users"),
+        courseId: v.id("university_courses"),
+        level: v.string(), // "Beginner", "Intermediate"
+    })
+        .index("by_tutor", ["tutorId"])
+        .index("by_course", ["courseId"]),
+
+    // ==========================================
+    // 5. TICKETS (REPLACES "requests")
+    // ==========================================
+    tickets: defineTable({
+        studentId: v.id("users"),
+        // Course linkage (optional for general requests)
+        courseId: v.optional(v.id("university_courses")),
+        // Fallback for non-course requests
+        customCategory: v.optional(v.string()), // "Mentorship", "Career Advice", "Project Help"
+        // Denormalized for easy filtering
+        department: v.optional(v.string()), // "CS", "MATH", etc.
         title: v.string(),
         description: v.string(),
-        budget: v.number(), // In base currency unit
-        deadline: v.string(), // ISO date string
+        budget: v.optional(v.number()),
+        deadline: v.optional(v.string()),
         status: v.union(
             v.literal("open"),
-            v.literal("in_progress"),
-            v.literal("completed"),
+            v.literal("offering"),
+            v.literal("in_progress"), // Async work (essay review, code review)
+            v.literal("in_session"), // Live tutoring session
+            v.literal("resolved"),
             v.literal("cancelled")
         ),
-        category: v.optional(v.string()),
+        urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+        helpType: v.string(), // "Debugging", "Exam Prep"
+        assignedTutorId: v.optional(v.id("users")),
+        createdAt: v.number(),
         deletedAt: v.optional(v.number()),
     })
         .index("by_status", ["status"])
-        .index("by_status_and_category", ["status", "category"])
-        .index("by_buyer", ["buyerId"])
+        .index("by_course", ["courseId"])
+        .index("by_student", ["studentId"])
+        .index("by_department", ["department", "status"])
+        .index("by_student_and_tutor", ["studentId", "assignedTutorId"])
         .searchIndex("search_title_description", {
             searchField: "title",
-            filterFields: ["category"],
+            filterFields: ["helpType", "department", "customCategory"],
         }),
 
+    // ==========================================
+    // 6. STUDY GROUPS (New Feature)
+    // ==========================================
+    study_groups: defineTable({
+        hostId: v.id("users"),
+        courseId: v.id("university_courses"),
+        title: v.string(),
+        maxMembers: v.number(),
+        currentMembers: v.number(),
+        status: v.string(),
+        createdAt: v.number(),
+    }).index("by_course", ["courseId"]),
+
+    // ==========================================
+    // STANDARD TABLES (From Old Schema)
+    // ==========================================
+
     offers: defineTable({
-        requestId: v.id("requests"),
-        buyerId: v.optional(v.id("users")),
-        sellerId: v.id("users"),
+        ticketId: v.id("tickets"), // Updated from requestId
+        studentId: v.optional(v.id("users")), // Was buyerId
+        tutorId: v.id("users"), // Was sellerId
         price: v.number(),
         status: v.union(
             v.literal("pending"),
@@ -88,19 +163,18 @@ export default defineSchema({
         ),
         deletedAt: v.optional(v.number()),
     })
-        .index("by_request", ["requestId"])
-        .index("by_seller", ["sellerId"])
-        .index("by_request_and_seller", ["requestId", "sellerId"])
-        .index("by_buyer_and_seller", ["buyerId", "sellerId"])
-        .index("by_seller_and_buyer", ["sellerId", "buyerId"]),
+        .index("by_ticket", ["ticketId"])
+        .index("by_tutor", ["tutorId"])
+        .index("by_ticket_and_tutor", ["ticketId", "tutorId"])
+        .index("by_student_and_tutor", ["studentId", "tutorId"]),
 
     reviews: defineTable({
         reviewerId: v.id("users"),
         revieweeId: v.id("users"),
-        requestId: v.id("requests"),
+        ticketId: v.id("tickets"), // Updated from requestId
         rating: v.number(), // 1-5
         comment: v.optional(v.string()),
-        type: v.union(v.literal("buyer_to_seller"), v.literal("seller_to_buyer")),
+        type: v.union(v.literal("student_to_tutor"), v.literal("tutor_to_student")), // Updated terminology
     }).index("by_reviewee", ["revieweeId"]),
 
     conversations: defineTable({
@@ -120,9 +194,9 @@ export default defineSchema({
         type: v.union(v.literal("text"), v.literal("image"), v.literal("file")),
         metadata: v.optional(
             v.object({
-                fileName: v.string(), // e.g. "document.pdf"
-                fileSize: v.number(), // in bytes
-                mimeType: v.string(), // e.g. "application/pdf"
+                fileName: v.string(),
+                fileSize: v.number(),
+                mimeType: v.string(),
             })
         ),
         isRead: v.boolean(),
@@ -136,10 +210,11 @@ export default defineSchema({
         type: v.union(
             v.literal("offer_received"),
             v.literal("offer_accepted"),
-            v.literal("request_completed"),
+            v.literal("ticket_resolved"),
+            v.literal("request_completed"), // Legacy: backward compat
             v.literal("new_message")
         ),
-        data: v.any(), // Flexible object for related IDs
+        data: v.any(),
         isRead: v.boolean(),
         createdAt: v.number(),
     })
@@ -149,7 +224,7 @@ export default defineSchema({
     reports: defineTable({
         reporterId: v.id("users"),
         targetId: v.id("users"),
-        requestId: v.optional(v.id("requests")),
+        ticketId: v.optional(v.id("tickets")), // Updated from requestId
         reason: v.string(),
         description: v.optional(v.string()),
         status: v.union(v.literal("pending"), v.literal("resolved"), v.literal("dismissed")),
@@ -184,11 +259,11 @@ export default defineSchema({
     }).index("by_active", ["isActive"]),
 
     audit_logs: defineTable({
-        actorId: v.optional(v.id("users")), // Who did it
-        action: v.string(), // e.g. "ban_user", "delete_request"
-        targetId: v.optional(v.id("users")), // Who was affected
-        targetType: v.optional(v.string()), // e.g. "user", "request"
-        details: v.optional(v.any()), // Extra context
+        actorId: v.optional(v.id("users")),
+        action: v.string(),
+        targetId: v.optional(v.id("users")),
+        targetType: v.optional(v.string()),
+        details: v.optional(v.any()),
         ipAddress: v.optional(v.string()),
         createdAt: v.number(),
     })

@@ -15,11 +15,12 @@ import { useRole } from "@/context/RoleContext";
 
 export default function OnboardingWizard() {
     const [step, setStep] = useState(1);
-    const [role, setRole] = useState<"buyer" | "seller">("buyer");
+    const [role, setRole] = useState<"student" | "tutor">("student");
     const [bio, setBio] = useState("");
     const [university, setUniversity] = useState("");
     const router = useRouter();
     const updateUser = useMutation(api.users.update);
+    const setUserRole = useMutation(api.users.setRole);
     const { setRole: setContextRole } = useRole();
 
     const totalSteps = 3;
@@ -40,13 +41,13 @@ export default function OnboardingWizard() {
                     updates: {
                         bio,
                         university,
-                        role
                     }
                 }),
-                setContextRole(role),
+                setUserRole({ role }),
             ]);
+            setContextRole(role);
             toast.success("Profile updated!");
-            router.push(role === "buyer" ? "/dashboard/buyer" : "/dashboard/seller");
+            router.push(role === "student" ? "/dashboard/buyer" : "/dashboard/seller");
         } catch (error) {
             toast.error("Failed to update profile");
         }
@@ -65,19 +66,19 @@ export default function OnboardingWizard() {
                     {step === 1 && (
                         <div className="space-y-4">
                             <h3 className="text-lg font-medium">How do you plan to use Path?</h3>
-                            <RadioGroup value={role} onValueChange={(v) => setRole(v as "buyer" | "seller")}>
+                            <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "tutor")}>
                                 <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                                    <RadioGroupItem value="buyer" id="buyer" />
-                                    <Label htmlFor="buyer" className="flex-1 cursor-pointer">
-                                        <div className="font-semibold">I want to hire</div>
-                                        <div className="text-sm text-muted-foreground">Post requests and find talent.</div>
+                                    <RadioGroupItem value="student" id="student" />
+                                    <Label htmlFor="student" className="flex-1 cursor-pointer">
+                                        <div className="font-semibold">I need help (Student)</div>
+                                        <div className="text-sm text-muted-foreground">Post tickets and find tutors.</div>
                                     </Label>
                                 </div>
                                 <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                                    <RadioGroupItem value="seller" id="seller" />
-                                    <Label htmlFor="seller" className="flex-1 cursor-pointer">
-                                        <div className="font-semibold">I want to work</div>
-                                        <div className="text-sm text-muted-foreground">Offer services and earn money.</div>
+                                    <RadioGroupItem value="tutor" id="tutor" />
+                                    <Label htmlFor="tutor" className="flex-1 cursor-pointer">
+                                        <div className="font-semibold">I want to help (Tutor)</div>
+                                        <div className="text-sm text-muted-foreground">Offer tutoring and earn money.</div>
                                     </Label>
                                 </div>
                             </RadioGroup>

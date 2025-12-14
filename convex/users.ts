@@ -61,7 +61,7 @@ export const store = mutation({
             reputation: 0,
             ratingSum: 0,
             ratingCount: 0,
-            role: "buyer",
+            role: "student",
             isVerified: false,
             isAdmin: false,
             isBanned: false,
@@ -93,8 +93,9 @@ export const currentUser = query({
                 reputation: ratingCount > 0 ? ratingSum / ratingCount : 0,
             };
         } catch (error) {
-            // If unauthenticated, return null to keep existing behavior
-            if (error instanceof Error && error.message === "Unauthenticated") {
+            // If unauthenticated or user not found, return null to trigger UserSync
+            if (error instanceof Error &&
+                (error.message === "Unauthenticated" || error.message === "User not found")) {
                 return null;
             }
             throw error;
@@ -149,7 +150,7 @@ export const get = query({
 });
 
 export const setRole = mutation({
-    args: { role: v.union(v.literal("buyer"), v.literal("seller")) },
+    args: { role: v.union(v.literal("student"), v.literal("tutor"), v.literal("admin")) },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
         await ctx.db.patch(user._id, { role: args.role });
@@ -166,5 +167,56 @@ export const acceptTerms = mutation({
         await ctx.db.patch(user._id, { termsAcceptedAt });
 
         return termsAcceptedAt;
+    },
+});
+
+export const updateTutorPresence = mutation({
+    args: {
+        isOnline: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx);
+
+        const profile = await ctx.db
+            .query("tutor_profiles")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .unique();
+
+        if (profile) {
+            await ctx.db.patch(profile._id, {
+                isOnline: args.isOnline,
+                lastActiveAt: Date.now(),
+            });
+        } else {
+            throw new Error("Tutor profile not found. Please create a tutor profile first.");
+        }
+    },
+});
+
+export const updateTutorSettings = mutation({
+    args: {
+        settings: v.object({
+            acceptingRequests: v.boolean(),
+            acceptingPaid: v.boolean(),
+            acceptingFree: v.boolean(),
+            minRate: v.number(),
+            allowedHelpTypes: v.array(v.string()),
+        }),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx);
+
+        const profile = await ctx.db
+            .query("tutor_profiles")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .unique();
+
+        if (profile) {
+            await ctx.db.patch(profile._id, {
+                settings: args.settings,
+            });
+        } else {
+            throw new Error("Tutor profile not found. Please create a tutor profile first.");
+        }
     },
 });

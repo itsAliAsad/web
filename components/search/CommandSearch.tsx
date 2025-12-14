@@ -18,6 +18,12 @@ export function CommandSearch() {
     const [open, setOpen] = React.useState(false);
     const router = useRouter();
 
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -34,6 +40,22 @@ export function CommandSearch() {
         setOpen(false);
         command();
     }, []);
+
+    if (!mounted) {
+        return (
+            <Button
+                variant="outline"
+                className="relative h-10 w-full justify-start text-sm text-muted-foreground sm:w-64 lg:w-80 neo-button bg-background"
+                onClick={() => setOpen(true)}
+            >
+                <Search className="mr-2 h-4 w-4" />
+                <span>Search...</span>
+                <kbd className="pointer-events-none absolute right-2 top-2.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex text-foreground">
+                    <span className="text-xs">⌘</span>K
+                </kbd>
+            </Button>
+        );
+    }
 
     return (
         <>

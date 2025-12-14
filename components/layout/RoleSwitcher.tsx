@@ -11,9 +11,10 @@ export default function RoleSwitcher() {
     const router = useRouter();
 
     const handleToggle = async () => {
-        const nextRole = role === "buyer" ? "seller" : "buyer";
+        const nextRole = role === "student" ? "tutor" : "student";
         await toggleRole();
-        router.push(`/dashboard/${nextRole}`);
+        // Map to old dashboard URLs (can be updated later)
+        router.push(nextRole === "student" ? "/dashboard/buyer" : "/dashboard/seller");
     };
 
     return (
@@ -33,7 +34,7 @@ export default function RoleSwitcher() {
             >
                 <ArrowLeftRight className="h-3.5 w-3.5" />
                 <span className="font-medium">
-                    Switch to {role === "buyer" ? "Seller" : "Buyer"}
+                    Switch to {role === "student" ? "Tutor" : "Student"}
                 </span>
             </motion.div>
         </Button>

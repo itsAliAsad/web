@@ -22,20 +22,19 @@ export const backfillUserRatings = internalMutation({
     },
 });
 
-// One-time helper to backfill buyerId on offers using the parent request.
-export const backfillOfferBuyerId = internalMutation({
+// One-time helper to backfill studentId on offers using the parent ticket.
+export const backfillOfferStudentId = internalMutation({
     args: {},
     handler: async (ctx) => {
         const offers = await ctx.db.query("offers").collect();
         let updated = 0;
 
         for (const offer of offers) {
-            // buyerId was added after initial data; skip if present
-            // @ts-ignore buyerId may be missing in older generated types until codegen runs
-            if (!offer.buyerId) {
-                const request = await ctx.db.get(offer.requestId);
-                if (request) {
-                    await ctx.db.patch(offer._id, { buyerId: request.buyerId });
+            // studentId may be missing in older data
+            if (!offer.studentId) {
+                const ticket = await ctx.db.get(offer.ticketId);
+                if (ticket) {
+                    await ctx.db.patch(offer._id, { studentId: ticket.studentId });
                     updated += 1;
                 }
             }
