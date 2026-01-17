@@ -300,6 +300,17 @@ export default function RequestDetailsPage() {
                                                         Accept Offer
                                                     </Button>
                                                 )}
+                                                {offer.status === "accepted" && (request.status === "in_session" || request.status === "in_progress") && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="w-full rounded-full h-10"
+                                                        onClick={() => window.location.href = "/messages"}
+                                                    >
+                                                        <MessageSquare className="h-4 w-4 mr-2" />
+                                                        Message Tutor
+                                                    </Button>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     ))

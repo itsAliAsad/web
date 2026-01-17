@@ -75,11 +75,25 @@ export default function Navbar() {
                         <Link
                             href="/messages"
                             className={cn(
-                                "transition-colors hover:text-foreground/80",
-                                "text-foreground/60"
+                                "transition-colors hover:text-foreground/80 flex items-center gap-1.5",
+                                isActive("/messages") ? "text-foreground" : "text-foreground/60"
                             )}
                         >
                             Messages
+                            {(() => {
+                                const conversations = useQuery(api.messages.listConversations);
+                                const unreadCount = conversations?.filter(c =>
+                                    c.lastMessage &&
+                                    !c.lastMessage.isRead &&
+                                    c.lastMessage.senderId !== user?._id
+                                ).length ?? 0;
+
+                                return unreadCount > 0 ? (
+                                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-amber-500 text-white">
+                                        {unreadCount}
+                                    </span>
+                                ) : null;
+                            })()}
                         </Link>
                         {user?.isAdmin && (
                             <Link

@@ -52,6 +52,38 @@ export default function SellerDashboard() {
         return { label: "Offline", color: "bg-gray-400" };
     };
 
+    // Wait for authentication
+    if (user === undefined) {
+        return (
+            <div className="container mx-auto py-10">
+                <div className="flex justify-between items-center mb-8">
+                    <Skeleton className="h-10 w-48" />
+                    <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                </div>
+            </div>
+        );
+    }
+
+    // Require authentication
+    if (!user) {
+        return (
+            <div className="container mx-auto py-20">
+                <div className="text-center">
+                    <h1 className="text-3xl font-bold mb-4">Authentication Required</h1>
+                    <p className="text-muted-foreground mb-6">Please sign in to access your dashboard.</p>
+                    <Link href="/">
+                        <Button>Go to Home</Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     if (requests === undefined || myOffers === undefined) {
         return (
             <div className="container mx-auto py-10">
@@ -395,7 +427,7 @@ export default function SellerDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {requests?.slice(0, 6).map((request) => (
                         <Link key={request._id} href={`/requests/${request._id}`} className="group">
-                            <Card className="glass-card border-none h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                            <Card className="glass-card border-none h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden relative">
                                 <CardContent className="p-6">
                                     <div className="flex items-start justify-between mb-3">
                                         <Badge variant="outline" className="text-xs">
@@ -420,6 +452,13 @@ export default function SellerDashboard() {
                                         <span>{request.urgency} priority</span>
                                         <span>•</span>
                                         <span>{request.helpType}</span>
+                                    </div>
+
+                                    {/* Minimalist Premium CTA - Icon Only */}
+                                    <div className="absolute bottom-4 right-4 translate-y-16 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out">
+                                        <button className="relative h-10 w-10 rounded-full bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:scale-110 transition-all duration-200 flex items-center justify-center">
+                                            <ArrowRight className="h-4 w-4 ml-0.5 group-hover:translate-x-0.5 transition-transform duration-200" />
+                                        </button>
                                     </div>
                                 </CardContent>
                             </Card>

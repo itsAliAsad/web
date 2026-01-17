@@ -200,3 +200,102 @@ export const getConversation = query({
         };
     },
 });
+
+export const canSendMessage = query({
+    args: { conversationId: v.id("conversations") },
+    handler: async (ctx, args) => {
+        // Return true if not authenticated (don't throw)
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return true;
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+            .unique();
+
+        if (!user) return true;
+
+        const conversation = await ctx.db.get(args.conversationId);
+        if (!conversation) return false;
+
+        if (
+            conversation.participant1 !== user._id &&
+            conversation.participant2 !== user._id
+        ) {
+            return false;
+        }
+
+        const otherUserId =
+            conversation.participant1 === user._id
+                ? conversation.participant2
+                : conversation.participant1;
+
+        // Check if there are any accepted offers between the two users
+        // where current user is the tutor
+        const acceptedOfferAsTutor = await ctx.db
+            .query("offers")
+            .filter(q =>
+                q.and(
+                    q.eq(q.field("tutorId"), user._id),
+                    q.eq(q.field("studentId"), otherUserId),
+                    q.eq(q.field("status"), "accepted")
+                )
+            )
+            .first();
+
+        // Tutors cannot send messages after their offer has been accepted
+        if (acceptedOfferAsTutor) {
+            return false;
+        }
+
+        return true;
+    },
+});
+
+export const getUnreadMessagesFromUser = query({
+    args: { otherUserId: v.id("users") },
+    handler: async (ctx, args) => {
+        // Return empty if not authenticated (don't throw)
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return 0;
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+            .unique();
+
+        if (!user) return 0;
+
+        // Find conversation between the two users
+        const conversation1 = await ctx.db
+            .query("conversations")
+            .withIndex("by_participant1", (q) => q.eq("participant1", user._id))
+            .filter((q) => q.eq(q.field("participant2"), args.otherUserId))
+            .first();
+
+        const conversation2 = await ctx.db
+            .query("conversations")
+            .withIndex("by_participant1", (q) => q.eq("participant1", args.otherUserId))
+            .filter((q) => q.eq(q.field("participant2"), user._id))
+            .first();
+
+        const conversation = conversation1 || conversation2;
+        if (!conversation) return 0;
+
+        // Count unread messages from the other user
+        const unreadMessages = await ctx.db
+            .query("messages")
+            .withIndex("by_conversation", (q) => q.eq("conversationId", conversation._id))
+            .filter((q) =>
+                q.and(
+                    q.eq(q.field("senderId"), args.otherUserId),
+                    q.eq(q.field("isRead"), false)
+                )
+            )
+            .collect();
+
+        return unreadMessages.length;
+    },
+});
+
+

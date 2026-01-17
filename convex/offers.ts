@@ -176,7 +176,16 @@ export const accept = mutation({
 export const listMyOffers = query({
     args: {},
     handler: async (ctx) => {
-        const user = await requireUser(ctx);
+        // Return empty if not authenticated (don't throw)
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+            .unique();
+
+        if (!user) return [];
 
         const offers = await ctx.db
             .query("offers")
@@ -201,17 +210,25 @@ export const listBetweenUsers = query({
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
 
+        // Get all offers where I am the student and other is tutor
         const iAmStudent = await ctx.db
             .query("offers")
-            .withIndex("by_student_and_tutor", (q) =>
-                q.eq("studentId", user._id).eq("tutorId", args.otherUserId)
+            .filter(q =>
+                q.and(
+                    q.eq(q.field("studentId"), user._id),
+                    q.eq(q.field("tutorId"), args.otherUserId)
+                )
             )
             .collect();
 
+        // Get all offers where I am the tutor and other is student
         const iAmTutor = await ctx.db
             .query("offers")
-            .withIndex("by_student_and_tutor", (q) =>
-                q.eq("studentId", args.otherUserId).eq("tutorId", user._id)
+            .filter(q =>
+                q.and(
+                    q.eq(q.field("studentId"), args.otherUserId),
+                    q.eq(q.field("tutorId"), user._id)
+                )
             )
             .collect();
 
