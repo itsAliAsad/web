@@ -44,7 +44,7 @@ export const store = mutation({
 
         if (user !== null) {
             // If we've seen this identity before but the name has changed, patch the value.
-            const patch: any = { lastLoginAt: Date.now() };
+            const patch: Record<string, unknown> = { lastLoginAt: Date.now() };
             if (user.name !== identity.name) {
                 patch.name = identity.name;
             }

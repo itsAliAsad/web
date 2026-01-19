@@ -25,7 +25,6 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
 
         const savedRole = localStorage.getItem("path_user_role") as Role;
-        // Map legacy roles to new ones (cast to string to handle old data)
         const roleStr = user.role as string;
         const userRole: Role = roleStr === "buyer" ? "student" :
             roleStr === "seller" ? "tutor" :
@@ -33,7 +32,11 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
                     roleStr === "tutor" ? "tutor" : "student";
         const derivedRole = userRole || savedRole || "student";
 
-        setRoleState(derivedRole);
+        // Only update if different to avoid effect loop/warning
+        if (derivedRole !== role) {
+            setRoleState(derivedRole);
+        }
+
         localStorage.setItem("path_user_role", derivedRole);
 
         if (user.role !== derivedRole) {
@@ -43,7 +46,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         }
 
         hydratedRef.current = true;
-    }, [user, setRoleMutation]);
+    }, [user, setRoleMutation, role]);
 
     const setRole = async (newRole: Role) => {
         setRoleState(newRole);

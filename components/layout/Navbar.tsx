@@ -81,7 +81,10 @@ export default function Navbar() {
                         >
                             Messages
                             {(() => {
-                                const conversations = useQuery(api.messages.listConversations);
+                                const conversations = useQuery(
+                                    api.messages.listConversations,
+                                    user ? {} : "skip"
+                                );
                                 const unreadCount = conversations?.filter(c =>
                                     c.lastMessage &&
                                     !c.lastMessage.isRead &&

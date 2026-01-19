@@ -1,0 +1,507 @@
+Course Code,Course Title
+ACCT-100,Principles of Financial Accounting
+ACCT-130,Principles of Management Accounting
+ACCT-220,Corporate Financial Reporting I
+ACCT-250,Auditing
+ACCT-320,Corporate Financial Reporting II
+ACCT-362,Fraud Examination and Forensic Accounting
+ACCT-370,Applied Taxation
+ACCT-411,Applied Financial Analysis
+ACF-5101,Financial Management and Accounting
+AI-600,Deep Learning
+AI-620,Fundamentals of Data Engineering
+AI-621,"MLOps, LLMOps, and Agentic AI Systems"
+AI-623,Deep Vision-Language Models
+AI-641,"Think, Learn, Move: AI for Robotics"
+ANTH-100,Introduction to Cultural Anthropology
+ANTH-263,Food and Culture
+ANTH-310,Classical Anthropological Theory
+ANTH-423,World Through a Trickster's Eyes
+AST-104,The Universe Around Us
+BIO-100,Biology Laboratory
+BIO-101,Introductory Biology
+BIO-212,Biochemistry
+BIO-231,Computational Biology I
+BIO-314,Virology and Microbiology
+BIO-402,Seminar in Biology II
+BIO-415,Developmental Biology I
+BIO-512,Advance Biochemistry
+BIO-515,Eukaryotic Development
+BIO-522,Topics in Cancer Biology
+BIO-5311,Advanced Biostatistics
+BIO-611,Cell Signaling
+BIO-621,Genetics and Genomics
+CHE-230,Chemical Engineering Thermodynamics
+CHE-412,Membrane Science and Engineering
+CHE-200A,Chemical Engineering Lab I
+CHE-262,Particle Science and Engineering
+CHE-273,Fluid Mechanics
+CHE-300B,Chemical Engineering Lab III
+CHE-300C,Chemical Engineering Lab IV
+CHE-315,Chemical Process Simulation
+CHE-330,Math Methods in Chemical Engineering II
+CHE-360,Chemical Kinetics and Reaction Engineering
+CHE-390,Transport Phenomena
+CHE-413,Process Optimization
+CHE-415,Renewable Energy: Applications and Economics
+CHE-430,Chemical Process Control
+CHE-480,Chemical Process Design II
+CHE-512,Biochemical Engineering
+CHE-710,Transport Processes in the Environment
+CHE-713,Engineering Thermodynamics
+CHEM-100,Experimental Chemistry
+CHEM-230,Organic Chemistry Lab I
+CHEM-233,Molecular Spectroscopy
+CHEM-251,Biochemistry
+CHEM-311,Chemical Thermodynamics
+CHEM-320,Inorganic Chemistry Lab
+CHEM-324,Inorganic Chemistry I
+CHEM-334,Advanced Organic Chemistry
+CHEM-410,Physical Chemistry Lab
+CHEM-503,Experimental Methods in Chemical Research
+CHEM-515,Polymer Science and Technology
+CHEM-533,Organic Spectroscopy
+CLCA-1122,Readings in Urdu Literature
+CLCA-2121,The Pakistani Drama Serial
+CLCA-2128,Partition Literature in Urdu
+CLCA-2135,Modern Urdu Poetics
+CLCA-2223,The Art of Television and Web Series
+CLCA-2310,Fiction Writing Workshop
+CLCA-2402,Book Illustration
+CLCA-2422,Introduction to Sanskrit
+CLCA-3000,Methods in Comparative Literature
+CLCA-3143,Waris Shah's Heer
+CLCA-3211,Film and Media Studies Seminar
+CLCA-3217,"Bad Mothers, Motherhood, and Mothering on Screen"
+CLCA-3324,The Craft of Translation
+CLCA-3522,The Art of the Cut
+CLCA-3523,Advanced Motion Media Techniques (Animation II)
+CLCA-4403,World Through a Trickster's Eyes
+CS-100,Computational Problem Solving
+CS-1001,Computational Problem Solving with Python
+CS-200,Introduction to Programming
+CS-202,Data Structures
+CS-220,Digital Logic Circuits
+CS-220L,Digital Logic Circuits Lab
+CS-232,Computational Biology I
+CS-300,Advanced Programming
+CS-310,Algorithms
+CS-315,Theory of Automata
+CS-320,Computer Organization and Assembly Language
+CS-326,Mind Matters: The Psychology of Intelligence and AI
+CS-331,Foundations of AI and Machine Learning
+CS-334,Principles and Techniques of Data Science
+CS-360,Software Engineering
+CS-382,Network-Centric Computing
+CS-413,Teaching CS Beyond Campus: Shaping Tech Literacy for Tomorrow
+CS-432,Data Mining Tasks and Techniques
+CS-437,Deep Learning
+CS-464,Compiler Design
+CS-466,Human-Computer Interaction and Design
+CS-473,Network Security
+CS-487,Cloud Development
+CS-5102,Algorithms
+CS-5112,Introduction to Quantum Information Science and Technology
+CS-5302,Foundations of Generative AI
+CS-5305,"MLOps, LLMOps, and Agentic AI Systems"
+CS-5306,Foundations of AI and Machine Learning
+CS-5312,Big Data Analytics
+CS-5317,Deep Learning
+CS-532,Applied AI
+CS-536,Data Mining Tasks and Techniques
+CS-5603,Cloud Development
+CS-5606,Designing Human-Centered AI
+CS-5607,Compiler Design
+CS-5613,Human-Computer Interaction and Design
+CS-564,Software Development: Tools and Processes
+CS-5714,Network Security
+CS-677,Internet of Things
+DISC-112,Computer and Problem Solving
+DISC-203,Probability and Statistics
+DISC-212,Introduction to Management Science
+DISC-231,Operations Management
+DISC-320,Qualitative and Quantitative Methods in Business
+DISC-321,Decision Analysis
+DISC-322,Optimization Methods in Management Science
+DISC-323,Decision Behaviour
+DISC-325,Business Data Management
+DISC-326,Data Science for Decision Making
+DISC-327,Risk Management Process
+DISC-333,Supply Chain and Logistics Management
+DISC-420,Business Analytics
+DISC-472,Generative AI for Business and Automation
+DISC-8603,Causal Models
+DISC-8604,Machine Learning Models
+DISC-8607,Qualitative Research Methods
+ECON-100,Principles of Economics
+ECON-111,Principles of Microeconomics
+ECON-121,Principles of Macroeconomics
+ECON-211,Intermediate Microeconomics
+ECON-213,Behavioral Economics
+ECON-221,Intermediate Macroeconomics
+ECON-230,Statistics and Data Analysis
+ECON-2301,Data Analytics Lab I
+ECON-233,Introduction to Game Theory
+ECON-240,Development Economics
+ECON-261,Principles of Finance
+ECON-311,Industrial Organisation
+ECON-330,Econometrics
+ECON-3301,Data Analytics Lab II
+ECON-3302,Introduction to Cooperative Game Theory
+ECON-3402,Gender Economics
+ECON-3404,Ethics and Economics
+ECON-3603,Money and Monetary Policy: Applications to Pakistan
+ECON-3604,Bank Financial Management
+ECON-371,Public Economics
+ECON-411,Advanced Microeconomics
+ECON-414,Applied Microeconomics
+ECON-421,Advanced Macroeconomics
+ECON-4303,Causal Inference and Research Design for Policy Evaluation
+ECON-435,Advanced Game Theory
+ECON-4404,Economics of Artificial Intelligence
+ECON-441,Development Economics Theory
+ECON-4410,Issues in Economic Policy
+ECON-521,Macroeconomic Analysis
+ECON-532,Econometrics and Research Methodology II
+EDU-210,Critical Debates in Education
+EDU-213,Philosophy of Education
+EDU-216,Globalization and Language
+EDU-224,Theories of Child and Adolescent Development in Education
+EDU-225,Motivation and Learning
+EDU-250,Education in the Pakistani Context
+EDU-263,Quantitative Research Methods
+EDU-310,"Learning in a Changing World: Climate, Environment & Human Capital"
+EDU-3204,Enhancing Inclusion: Exploring Autism and Intellectual Disability
+EDU-3208,Beyond the Test: Assessment for Learning
+EDU-3209,Mindfulness and Resilience
+EDU-3217,Education for Emergencies
+EDU-332,Curriculum Theory and History
+EDU-333,Culturally Responsive Social-Emotional Learning
+EDU-345,Practicing Leadership
+EDU-346,Cultivating Authentic Leadership: A Journey into Self-Discovery
+EDU-3502,Learning with Writing
+EDU-352,Education Policy Analysis
+EDU-354,Comparative and International Education
+EDU-413,What does it mean to 'be educated'?
+EDU-426,"Pedagogy: Intersections of the Taught, Written, and Assessed Curriculum"
+EDU-5202,"Pedagogy: Intersections of the Taught, Written, and Assessed Curriculum"
+EDU-5203,Education for Emergencies
+EDU-541,School Effectiveness and Development
+EDU-561,Applied Data Analysis
+EDU-562,Data Lab
+EDUX-541,School Effectiveness and Development
+EDUX-543,Essential Management Tools for Aspiring Educational Leaders
+EDUX-561,Applied Data Analysis
+EDUX-562,Data Lab
+EDUX-623,Effective Teaching and Learning in Higher Education
+EDUX-624,Leadership and Administration in Higher Education
+EE-341,Microelectronic Design
+EE-201,Introduction to Programming
+EE-202,Data Structures
+EE-220,Digital Logic Circuits
+EE-220L,Digital Logic Circuits Lab
+EE-241L,Introductory Circuits Lab
+EE-242,Circuits II
+EE-3001,Junior Design Studio - Electric Vehicles
+EE-3002,Junior Design Studio - Robotics
+EE-310,Signals and Systems
+EE-315,Foundations of AI and Machine Learning
+EE-320,Computer Organization and Assembly Language
+EE-330,Electromagnetic Fields and Waves
+EE-356,Electrical Machines and Power Systems
+EE-356L,Electrical Machines and Power Systems Lab
+EE-361,Feedback Control Systems
+EE-361L,Feedback Control Systems Lab
+EE-402,Principles and Techniques of Data Science
+EE-414,Deep Learning
+EE-416,Foundations of Generative AI
+EE-452,Power Electronics
+EE-452L,Power Electronics Lab
+EE-475,Network-Centric Computing
+EE-483,Network Security
+EE-5001,EV Design Studio
+EE-514,Foundations of AI and Machine Learning
+EE-517,Deep Learning
+EE-519,Foundations of Generative AI
+EE-5214,Verification of Digital Systems
+EE-522,Embedded Systems
+EE-523,VLSI Design
+EE-525,Photovoltaic Devices
+EE-539,Introduction to Quantum Information Science and Technology
+EE-5512,Power System Operation and Control
+EE-552,Power Electronics
+EE-552L,Power Electronics Lab
+EE-557,Electricity Markets
+EE-558,Battery Energy Storage Systems
+EMBA-5012,Managerial Accounting and Control Systems
+EMBA-5021,Managerial Finance
+EMBA-5031,Operations and Supply Chain Management
+EMBA-5033,Innovation and Technology Management
+EMBA-5051,Managing People
+EMBA-5053,Leading Organizations
+EMBA-5111,Managerial Economics
+EMBA-6241,Islamic Ethics
+EMBA-6242,Corporate Governance
+EMBA-6304,Business Strategy
+ENGG-100,Design and Measurement Lab
+ENGL-1111,The Word and the World
+ENGL-2151,The Anti Scooby Doo’s: A Selective Survey of Detective Fiction
+ENGL-2152,"Gangs, Wizards and Soldiers: Young Adult Literature through the Ages"
+ENGL-2811,"Rethinking the Politics of Harem in Literature: Women, Islam, and Gendered Spaces"
+ENGL-3421,Narrative Nonfiction - Workshop
+ENGL-3510,Literary Theory
+ENGL-3712,"Writing Broken Homelands: Partition Literature in Pakistan, India and Palestine"
+ENGL-3811,Maternal Figures and National Fictions in the Anglophone World
+ENGL-3812,African Literature: Women Writing Back
+ENV-102,Introduction to Environmental Studies
+ENV-210,Methods in Environmental Studies
+ENV-232,Global Environmental History
+ENV-237,Air Pollution
+ENV-310,Quantitative Research Methods
+ENV-322,Environmental Governance
+ENV-333,Climate Change and Environment Policy
+ENV-334,Politics of Water
+ENV-336,The Politics of Resources
+ENV-342,Environmentalism and Development
+ENV-443,Gender and the City in South Asia
+FINN-100,Principles of Finance
+FINN-200,Intermediate Finance
+FINN-222,Introduction to Mathematics of Finance
+FINN-242,Islamic Capital Markets and Instruments
+FINN-243,Fintech Revolution: Market Disruption and Emerging Opportunities
+FINN-341A,Financial Institutions and Markets
+FINN-372,Actuarial Sciences and Insurance
+FINN-400,Applied Corporate Finance
+FINN-422,Quantitative Finance
+FINN-441,Islamic Banking and Finance
+FINN-453,Financial Derivatives
+FINN-454,Portfolio Management
+FMG-6201,Corporate Finance and Valuation
+FMG-6301,Investments and Portfolio Management
+FMG-6302,Derivatives and Fixed Income
+FMG-6401,Entrepreneurial Finance and Venture Capital
+GSL-102,Chinese Language for Beginners (HSK Level 1)
+GSS-210,Introduction to Gender and Sexuality Studies
+GSS-262,"Rethinking the Politics of Harem in Literature: Women, Islam, and Gendered Spaces"
+GSS-302,Feminist Theory
+GSS-316,Gender Economics
+GSS-343,"Feminist Liberation Theologies: Interrogating the Nexus of Sex, Class, and Religion"
+GSS-363,African Literature: Women Writing Back
+GSS-366,"Gender, Nationalism, and Politics: Unpacking media master narratives in South Asia"
+GSS-369,"Bad Mothers, Motherhood, and Mothering on Screen"
+GSS-375,Maternal Figures and National Fictions in the Anglophone World
+GSS-376,"(Her)Story as History: Gender, Genre and Women’s Life Writings in South Asia"
+GSS-415,Gender and the City in South Asia
+HIST-101,World Civilizations
+HIST-127,A Peoples History of Pakistan
+HIST-225,Bazaar Asia
+HIST-2313,Global Environmental History
+HIST-263,The Pakistani Drama Serial
+HIST-292,Introduction to Sanskrit
+HIST-315,History of Miniature Painting
+HIST-3223,"Writing Broken Homelands: Partition Literature in Pakistan, India and Palestine"
+HIST-3324,"(Her)Story as History: Gender, Genre and Women’s Life Writings in South Asia"
+HIST-382,Waris Shah's Heer
+HIST-4322,World Through a Trickster's Eyes
+HMI-6101,Health Systems Management
+HMI-6102,"Healthcare Policy, Politics and Law"
+HMI-6103,Leadership Challenges in Healthcare
+HMI-6201,Innovation and Entrepreneurship in Healthcare
+HMI-6204A,Advanced Analytics Healthcare - I
+HSS-101,First Year Advising Tutorial
+LANG-1202,Arabic for Quran
+LANG-1203,Hindi for Non-Native Speakers
+LANG-1204,Kashmiri I
+LANG-122,Introduction to Balochi Language
+LANG-123,Introduction to Punjabi Language
+LANG-124,Introduction to Arabic Language
+LANG-127,Introduction to Persian Language
+LANG-128,Sindhi for Non-Sindhi Speakers
+LANG-129,Pashto for Non-Native Speakers
+LANG-2208,Introduction to Sanskrit
+LAW-101,Introduction to Legal Reasoning
+LAW-102,Introduction to Pakistan Legal System
+LAW-210,Concept of Law
+LAW-223,Commercial Law
+LAW-224,Property Law
+LAW-225,Islamic Legal Theory
+LAW-232,Public Law
+LAW-320,"Equity, Specific Relief and Trusts"
+LAW-3202,International Corporate Finance and Insolvency Law
+LAW-3205,International Business Transactions
+LAW-322,Labor Law
+LAW-323,Tax Law
+LAW-353,Human Rights
+LAW-3611,Family Law
+LAW-3912,Climate Change and Environment Policy
+LAW-4306,Judicial Review Of Public Actions: Writ Jurisdiction In Pakistan
+LAW-4307,Foreign Investment Law and the New Silk Route
+LAW-4308,"Law, Technology and the Regulation of Social Media"
+LAW-458,Refugee Rights
+LAW-470,Evidence
+LAW-472,Criminal Procedure
+LAW-486,Advanced Legal Research
+LAW-4906,LUMS Law Clinic
+LAW-4909,Advanced Public Law Seminar - I
+LAW-4924,Prison Paralegal Clinic
+MATH-100,Pre-calculus
+MATH-101,Calculus I
+MATH-102,Calculus II
+MATH-120,Linear Algebra with Differential Equations
+MATH-120H,Linear Algebra I (Honours)
+MATH-205,Introduction to Analysis I
+MATH-230,Probability
+MATH-231,Statistics
+MATH-232,Introduction to Game Theory
+MATH-3010,Advanced Calculus
+MATH-310,Ordinary Differential Equations
+MATH-320,Algebra I
+MATH-401,Functional Analysis
+MATH-4013,Differential Geometry
+MATH-445,Operations Research II
+MATH-449,Quantitative Finance
+MATH-466,General Relativity
+MATH-5012,Advanced Differential Geometry
+MATH-505,Advanced Functional Analysis
+MATH-524,Advanced Quantitative Finance
+MATH-5300,Probability and Statistical Analysis
+MATH-548,Operational Research II
+MBA-5022,Financial Management
+MBA-5101,Business Ethics and Islam
+MBA-5111,Managerial Economics
+MBA-5184,Business Intelligence
+MBA-5202,Managerial Accounting and Control
+MBA-5702,Decision Analysis
+MBA-5703,Operations Management Fundamentals
+MBA-5704,"Operations Management-Technology, Innovation and Emerging Trends"
+MBA-5801,Business Strategy
+MBA-5902,My Startup
+MBA-6036,AI for Business Leadership
+MBA-6037A,"Leading Projects: Navigating Inception, Planning and Execution"
+MBA-6046,Business to Business
+MBA-6054A,Organizational Power and Politics
+MBA-6065,Leadership and Liberal Arts
+MBA-6070,"Business, Government and Society"
+MBA-6132,Agribusiness and Value Chain Management
+MBA-6165,Business Development and Economy
+MBA-6213,Corporate Governance
+MECO-111,Principles of Microeconomics
+MECO-121,Principles of Macroeconomics
+MGMT-142,Principles of Management
+MGMT-212,Business Communication
+MGMT-242,Business Ethics and Corporate Social Responsibility
+MGMT-243,Public Administration
+MGMT-244,Reforming The Public Sector
+MGMT-247,Public Financial Management
+MGMT-252,Logic and Critical Thinking
+MGMT-260,Business Law
+MGMT-272,International Business Transactions
+MGMT-273,International Corporate Finance and Insolvency Law
+MGMT-275,Foreign Investment Law and the New Silk Route
+MGMT-362,Rethinking Policy: Critical Perspectives on Pakistan's Agricultural Development
+MGMT-384,Entrepreneurship and Management in the Restaurant Industry
+MGMT-400,Strategic Business Management
+MGMT-462,Modern Thought in Social Policy
+MGMT-481,Entrepreneurship
+MKTG-201,Principles of Marketing
+MKTG-302,Digital Marketing
+MKTG-322,Sales Force Management
+MKTG-323,Channel Management
+MKTG-324,Integrated Marketing Communications
+MKTG-332,Consumer Behaviour
+MKTG-343,Marketing Models
+MKTG-344,Data Driven Marketing
+MKTG-345,Data Analytics for New Product Development
+MKTG-392,Brand Management
+ORSC-201,Organizational Behaviour
+ORSC-341,Human Resource Management
+ORSC-8101,Seminar in Organizational Behavior
+PHIL-212,Plato and Aristotle
+PHIL-432,Mohammed Iqbal and Charles Peirce
+PHY-104,Modern Physics
+PHY-304,Computational Physics
+PHY-305,Electromagnetic Fields and Waves
+PHY-312,Quantum Mechanics II
+PHY-332,Condensed Matter Physics
+PHY-337,Molecular Spectroscopy
+PHY-362,Fluid Mechanics
+PHY-417,Introduction to Quantum Information Science and Technology
+PHY-442,General Relativity
+PHY-480,Seminars in Physics
+PHY-505,Computational Physics
+PHY-517,Quantum Mechanics
+PHY-532,Photovoltaic Devices
+PHY-535,Advanced Condensed Matter Physics
+PHY-539,Introduction to Quantum Field Theory
+PHY-612,Introduction to Quantum Information Science and Technology
+PHY-642,General Relativity
+PHY-712,Seminars in Physics
+POL-320,Comparative Politics
+POL-100,Introduction to Political Science
+POL-203,Introduction to Political Theory
+POL-212,Class Structure in Pakistan
+POL-227,The Politics of Conflict and Intervention in Afghanistan
+POL-2313,Civil Society and Social Movements
+POL-244,The Politics of Class and Markets
+POL-322,Politics of India
+POL-328,Politics of Pakistan
+POL-331,Pakistan's Foreign Relations
+POL-338,Environmental Governance
+POL-355,Politics of Water
+POL-364,Quantitative Research Method
+POL-365,"Gender, Nationalism, and Politics: Unpacking media master narratives in South Asia"
+POL-373,State and Sovereignty
+POL-375,Foreign Policy Analysis
+POL-376,Politics of International Economy
+POL-377,Labor Law
+POL-378,The Politics of Resources
+PSY-309,Human Memory
+PSY-100,Introduction to psychology and human behavior
+PSY-220,Psychopathology
+PSY-224,Counseling and Psychotherapy
+PSY-232,Theories of Personality
+PSY-316,Mind Matters: The Psychology of Intelligence and AI
+PSY-325,Positive Psychology and The Pursuit of Happiness
+REL-219,Islamic Legal Theory
+REL-337,"Feminist Liberation Theologies: Interrogating the Nexus of Sex, Class, and Religion"
+REL-432,Islamic Modernism in Pakistan
+SCI-203,Air Pollution
+SCI-210,Energy and Information
+SCI-305,Computational Methods
+SCRM-6201,Logistics Management
+SCRM-6202,Supply Management
+SCRM-6301,Retailing Strategy and Operations
+SOC-100,Introduction to Sociology
+SOC-243,Politics of Class and Markets
+SOC-244,"Language, Culture, and Society"
+SOC-265,Introduction to Gender and Sexuality Studies
+SOC-320,Quantitative Research Methods
+SOC-321,Comparative and International Education
+SOC-324,Environmentalism and Development
+SOC-346,The Politics of Resources
+SOC-347,Labor Law
+SOC-363,Feminist Theory
+SOC-383,"Racism, Migration and Displacement"
+SOC-384,Urban Transformations in the Global South
+SOC-463,Spatial Politics and Citizenship in Urban Lives
+SOC-465,Gender and the City in South Asia
+SS-100,Writing and Communication
+SS-101,Islamic Studies
+SS-102,Pakistan Studies: Culture and Heritage
+SS-1312,Fundamentals of Raag and Taal [Vocal and Flute]
+SS-187,Applied Statistics for Humanities
+SS-2203,Digital Approaches to the Humanities
+SS-233,Media Writing
+SS-3302,Professional Communication Skills
+SSE-101,SSE Tutorials
+SWR-102,Swimming for Beginners
+SWR-103,Strength Training and Conditioning for Beginners
+SWR-104,Basketball for beginners
+SWR-105,"Walk, Jog and Stretch for Fitness"
+SWR-106,Squash for Beginners Course
+SWR-107,Badminton for Beginner Single and Doubles
+SWR-108,Volleyball for Beginners Course
+TME-6101,Tech-Entrepreneurship
+TME-6102,Business Venture Planning
+TME-6201,"Technology, Design and Innovation Management"
+TME-6202,Technology and Operations Management

@@ -18,6 +18,7 @@ import type * as portfolio from "../portfolio.js";
 import type * as reports from "../reports.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
+import type * as seedCourses from "../seedCourses.js";
 import type * as study_groups from "../study_groups.js";
 import type * as tickets from "../tickets.js";
 import type * as tutor_offerings from "../tutor_offerings.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   reports: typeof reports;
   reviews: typeof reviews;
   seed: typeof seed;
+  seedCourses: typeof seedCourses;
   study_groups: typeof study_groups;
   tickets: typeof tickets;
   tutor_offerings: typeof tutor_offerings;

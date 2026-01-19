@@ -2,19 +2,24 @@
 
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp } from "lucide-react"
+import { TrendingUp, TrendingDown } from "lucide-react"
 
-const data = [
-    { name: "Jan", total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: "Feb", total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: "Mar", total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: "Apr", total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: "May", total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: "Jun", total: Math.floor(Math.random() * 5000) + 1000 },
-]
+interface ChartData {
+    name: string;
+    total: number;
+}
 
-export function EarningsChart() {
+interface EarningsChartProps {
+    data: ChartData[];
+    trend?: number;
+}
+
+export function EarningsChart({ data, trend }: EarningsChartProps) {
     const total = data.reduce((acc, curr) => acc + curr.total, 0)
+
+    // Default to positive if undefined, logic to handle NaN/Infinity if passed
+    const safeTrend = trend || 0;
+    const isPositive = safeTrend >= 0;
 
     return (
         <Card className="glass-card border-none shadow-glow-teal h-full flex flex-col overflow-hidden">
@@ -24,10 +29,12 @@ export function EarningsChart() {
                         <CardTitle className="text-xl font-bold tracking-tight">Earnings</CardTitle>
                         <CardDescription className="text-sm">Your 6-month overview</CardDescription>
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-teal-600">
-                        <TrendingUp className="h-4 w-4" />
-                        <span>+18%</span>
-                    </div>
+                    {trend !== undefined && (
+                        <div className={`flex items-center gap-1.5 text-sm font-medium ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                            <span>{isPositive ? '+' : ''}{safeTrend.toFixed(1)}%</span>
+                        </div>
+                    )}
                 </div>
                 <div className="pt-2">
                     <span className="text-3xl font-bold tracking-tight text-foreground">

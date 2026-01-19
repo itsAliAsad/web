@@ -1,18 +1,38 @@
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { requireUser } from "./utils";
+import { Id } from "./_generated/dataModel";
 
 export const list = query({
     args: { paginationOpts: paginationOptsValidator },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx, { allowBanned: true });
 
-        return await ctx.db
+        const results = await ctx.db
             .query("notifications")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .order("desc")
             .paginate(args.paginationOpts);
+
+        // Enrich notifications with sender info for new_message type
+        return {
+            ...results,
+            page: await Promise.all(
+                results.page.map(async (n) => {
+                    if (n.type === "new_message" && n.data?.senderId) {
+                        const sender = await ctx.db.get(n.data.senderId as Id<"users">);
+                        return {
+                            ...n,
+                            sender: sender
+                                ? { name: sender.name, image: sender.image }
+                                : undefined,
+                        };
+                    }
+                    return { ...n, sender: undefined };
+                })
+            ),
+        };
     },
 });
 

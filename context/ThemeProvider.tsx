@@ -13,6 +13,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!user) return;
 
+        const applyTheme = (theme: Theme) => {
+            const root = document.documentElement;
+
+            if (theme === "system") {
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                root.classList.remove("light", "dark");
+                root.classList.add(systemTheme);
+            } else {
+                root.classList.remove("light", "dark");
+                root.classList.add(theme);
+            }
+        };
+
         const theme = (user.theme as Theme) || "system";
         applyTheme(theme);
 
@@ -23,20 +36,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             mediaQuery.addEventListener("change", handler);
             return () => mediaQuery.removeEventListener("change", handler);
         }
-    }, [user?.theme]);
-
-    const applyTheme = (theme: Theme) => {
-        const root = document.documentElement;
-
-        if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-            root.classList.remove("light", "dark");
-            root.classList.add(systemTheme);
-        } else {
-            root.classList.remove("light", "dark");
-            root.classList.add(theme);
-        }
-    };
+    }, [user]);
 
     return <>{children}</>;
 }

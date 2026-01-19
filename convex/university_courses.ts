@@ -21,10 +21,7 @@ export const seed = mutation({
             // Since searchIndex isn't great for exact match in mutations sometimes (event consistency), 
             // but for seeding it's okay. Or better, just insert if empty/wipe first.
             // But let's follow the previous logic or simpler:
-            const existing = await ctx.db
-                .query("university_courses")
-                .withSearchIndex("search_course", (q) => q.search("code", course.code))
-                .first();
+            // Check if course exists by code. We'll use filter to be safe.
 
             // Note: search queries in mutations are allowed but might not see immediately recent writes if not awaited/flushed?
             // Actually, standard queries are better for exact match if we had an index.
@@ -50,19 +47,42 @@ export const seed = mutation({
 export const search = query({
     args: { query: v.string() },
     handler: async (ctx, args) => {
+        // Get all active courses
+        const allCourses = await ctx.db
+            .query("university_courses")
+            .filter((q) => q.eq(q.field("isActive"), true))
+            .collect();
+
         // If empty query, return all active courses
         if (!args.query || args.query.trim() === "") {
-            return await ctx.db
-                .query("university_courses")
-                .filter((q) => q.eq(q.field("isActive"), true))
-                .take(50);
+            return allCourses.slice(0, 50);
         }
 
-        // Otherwise search by code
-        return await ctx.db
-            .query("university_courses")
-            .withSearchIndex("search_course", (q) => q.search("code", args.query))
-            .take(10);
+        // Normalize search query - lowercase and split into words
+        const searchTerms = args.query.toLowerCase().trim().split(/\s+/);
+
+        // Filter courses that match ANY of the search terms in code OR name
+        const filtered = allCourses.filter((course) => {
+            const code = course.code.toLowerCase();
+            const name = course.name.toLowerCase();
+            const combined = `${code} ${name}`;
+
+            // Check if all search terms are found in the combined string
+            return searchTerms.every((term) => combined.includes(term));
+        });
+
+        // Sort results: prioritize code matches, then name matches
+        filtered.sort((a, b) => {
+            const queryLower = args.query.toLowerCase();
+            const aCodeMatch = a.code.toLowerCase().includes(queryLower);
+            const bCodeMatch = b.code.toLowerCase().includes(queryLower);
+
+            if (aCodeMatch && !bCodeMatch) return -1;
+            if (!aCodeMatch && bCodeMatch) return 1;
+            return 0;
+        });
+
+        return filtered.slice(0, 20);
     },
 });
 

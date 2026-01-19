@@ -44,7 +44,7 @@ export const updateProfile = mutation({
             .unique();
 
         if (profile) {
-            const updates: any = {};
+            const updates: Record<string, unknown> = {};
             if (args.bio !== undefined) updates.bio = args.bio;
             if (args.minRate !== undefined || args.allowedHelpTypes !== undefined || args.acceptingRequests !== undefined) {
                 updates.settings = {

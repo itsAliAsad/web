@@ -11,7 +11,7 @@ import ExpertiseSection from "@/components/profile/ExpertiseSection";
 import VerifiedBadge from "@/components/trust/VerifiedBadge";
 import ReportDialog from "@/components/trust/ReportDialog";
 import EditProfileDialog from "@/components/profile/EditProfileDialog";
-import { Linkedin, Twitter, Globe, LinkIcon } from "lucide-react";
+import { Linkedin, Twitter, Globe } from "lucide-react";
 import { useParams } from "next/navigation";
 
 export default function PublicProfilePage() {

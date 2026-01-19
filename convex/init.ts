@@ -1,6 +1,4 @@
-import { internalMutation, mutation } from "./_generated/server";
-import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { mutation } from "./_generated/server";
 
 export const seed = mutation({
     handler: async (ctx) => {

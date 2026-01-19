@@ -53,6 +53,9 @@ export const create = mutation({
 export const listByTicket = query({
     args: { ticketId: v.id("tickets") },
     handler: async (ctx, args) => {
+        const ticket = await ctx.db.get(args.ticketId);
+        if (!ticket) return [];
+
         const offers = await ctx.db
             .query("offers")
             .withIndex("by_ticket", (q) => q.eq("ticketId", args.ticketId))
@@ -61,6 +64,37 @@ export const listByTicket = query({
         return await Promise.all(
             offers.map(async (offer) => {
                 const tutor = await ctx.db.get(offer.tutorId);
+                const profile = await ctx.db
+                    .query("tutor_profiles")
+                    .withIndex("by_user", (q) => q.eq("userId", offer.tutorId))
+                    .unique();
+
+                // Get level for this specific course if applicable
+                let tutorLevel = undefined;
+                if (ticket.courseId) {
+                    const specificOffering = await ctx.db
+                        .query("tutor_offerings")
+                        .withIndex("by_tutor", (q) => q.eq("tutorId", offer.tutorId))
+                        .filter((q) => q.eq(q.field("courseId"), ticket.courseId))
+                        .first();
+                    tutorLevel = specificOffering?.level;
+                }
+
+                // Get other courses they teach (limit 3)
+                const allOfferings = await ctx.db
+                    .query("tutor_offerings")
+                    .withIndex("by_tutor", (q) => q.eq("tutorId", offer.tutorId))
+                    .take(3);
+
+                const courseNames = await Promise.all(
+                    allOfferings.map(async (offering) => {
+                        const course = await ctx.db.get(offering.courseId);
+                        return course?.code;
+                    })
+                );
+                const validCourseNames = courseNames.filter(Boolean) as string[];
+
+
                 return {
                     ...offer,
                     tutorName: tutor?.name,
@@ -68,6 +102,9 @@ export const listByTicket = query({
                     sellerName: tutor?.name, // Legacy alias
                     sellerId: offer.tutorId, // Legacy alias
                     sellerIsVerified: Boolean(tutor?.isVerified),
+                    tutorBio: profile?.bio,
+                    tutorLevel,
+                    tutorCourses: validCourseNames
                 };
             })
         );
@@ -119,10 +156,16 @@ export const accept = mutation({
         }
 
         // Update offer status
+        const offerToAccept = await ctx.db.get(args.offerId);
+        if (!offerToAccept) throw new Error("Offer not found");
+
         await ctx.db.patch(args.offerId, { status: "accepted" });
 
-        // Update ticket status
-        await ctx.db.patch(resolvedTicketId, { status: "in_session" });
+        // Update ticket status and assign tutor
+        await ctx.db.patch(resolvedTicketId, {
+            status: "in_session",
+            assignedTutorId: offerToAccept.tutorId
+        });
 
         // Reject other offers
         const otherOffers = await ctx.db
@@ -198,6 +241,8 @@ export const listMyOffers = query({
                 return {
                     ...offer,
                     requestTitle: ticket?.title || "Unknown Ticket",
+                    requestStatus: ticket?.status,
+                    requestDeadline: ticket?.deadline,
                     requestId: offer.ticketId, // Alias for backward compat
                 };
             })

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { FileText, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { formatStatus } from "@/lib/utils";
 
 interface TicketHistorySectionProps {
     tutorId: Id<"users">;
@@ -113,8 +114,8 @@ export default function TicketHistorySection({ tutorId }: TicketHistorySectionPr
                                             className={`shrink-0 flex items-center gap-1 px-2 py-0.5 ${statusConfig.className}`}
                                         >
                                             <StatusIcon className="h-3 w-3" />
-                                            <span className="text-xs capitalize">
-                                                {ticket.status.replace('_', ' ')}
+                                            <span className="text-xs">
+                                                {formatStatus(ticket.status)}
                                             </span>
                                         </Badge>
                                     </div>

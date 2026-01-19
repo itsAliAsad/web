@@ -56,11 +56,34 @@ export const listMyRequests = query({
     handler: async (ctx) => {
         const user = await requireUser(ctx);
 
-        return await ctx.db
+        const tickets = await ctx.db
             .query("tickets")
             .withIndex("by_student", (q) => q.eq("studentId", user._id))
             .order("desc")
             .collect();
+
+        return await Promise.all(
+            tickets.map(async (ticket) => {
+                let assignedTutorId = ticket.assignedTutorId;
+
+                // Backfill for existing active tickets if needed
+                if (!assignedTutorId && (ticket.status === "in_session" || ticket.status === "in_progress" || ticket.status === "resolved")) {
+                    const offer = await ctx.db
+                        .query("offers")
+                        .withIndex("by_ticket", (q) => q.eq("ticketId", ticket._id))
+                        .filter((q) => q.eq(q.field("status"), "accepted"))
+                        .first();
+                    if (offer) {
+                        assignedTutorId = offer.tutorId;
+                    }
+                }
+
+                return {
+                    ...ticket,
+                    assignedTutorId,
+                };
+            })
+        );
     },
 });
 
@@ -108,7 +131,31 @@ export const listOpen = query({
 export const get = query({
     args: { id: v.id("tickets") },
     handler: async (ctx, args) => {
-        return await ctx.db.get(args.id);
+        const ticket = await ctx.db.get(args.id);
+        if (!ticket) return null;
+
+        const student = await ctx.db.get(ticket.studentId);
+
+        let studentDetails = undefined;
+        if (student) {
+            const ratingSum = student.ratingSum ?? 0;
+            const ratingCount = student.ratingCount ?? 0;
+            const reputation = ratingCount > 0 ? ratingSum / ratingCount : 0;
+
+            studentDetails = {
+                _id: student._id,
+                name: student.name,
+                image: student.image,
+                university: student.university,
+                isVerified: student.isVerified,
+                reputation
+            };
+        }
+
+        return {
+            ...ticket,
+            student: studentDetails
+        };
     },
 });
 
@@ -156,6 +203,9 @@ export const search = query({
                 q.search("title", args.query)
             )
             .collect();
+
+        // Filter out non-open jobs
+        results = results.filter((t) => t.status === "open");
 
         // Filter by department
         if (args.department && args.department !== "all") {

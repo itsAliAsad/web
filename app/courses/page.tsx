@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +136,7 @@ export default function CoursesPage() {
     );
 }
 
-function CourseCard({ course }: { course: any }) {
+function CourseCard({ course }: { course: Doc<"university_courses"> }) {
     return (
         <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">

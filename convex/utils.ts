@@ -56,7 +56,7 @@ export async function logAudit(
         actorId?: Id<"users">;
         targetId?: Id<"users">;
         targetType?: string;
-        details?: any;
+        details?: unknown;
     }
 ) {
     await ctx.db.insert("audit_logs", {

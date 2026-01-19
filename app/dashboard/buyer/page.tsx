@@ -2,14 +2,14 @@
 
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Wallet, FileText, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
+import { Plus, Wallet, FileText, MessageSquare, ArrowRight, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
+import MessageButton from "@/components/chat/MessageButton";
 import { Badge } from "@/components/ui/badge";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
+import { formatStatus } from "@/lib/utils";
 
 export default function BuyerDashboard() {
     const { isAuthenticated } = useConvexAuth();
@@ -40,9 +40,53 @@ export default function BuyerDashboard() {
     }
 
     const activeRequestsCount = requests.filter(r => r.status === "open" || r.status === "in_progress").length;
-    const totalSpent = requests
-        .filter(r => r.status === "resolved")
-        .reduce((acc, curr) => acc + (curr.budget || 0), 0);
+    // Calculate total spent from accepted offers (actual spending)
+    const totalSpent = offers
+        .filter(o => o.status === "accepted")
+        .reduce((acc, curr) => acc + curr.price, 0);
+
+    // Calculate chart data for the last 6 months (Spending)
+    const now = new Date();
+    const chartData = Array.from({ length: 6 }, (_, i) => {
+        const date = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const monthName = date.toLocaleString('default', { month: 'short' });
+
+        // Filter offers for this month
+        const monthlyTotal = offers
+            .filter(o => {
+                if (o.status !== "accepted") return false;
+                const offerDate = new Date(o._creationTime);
+                return offerDate.getMonth() === date.getMonth() &&
+                    offerDate.getFullYear() === date.getFullYear();
+            })
+            .reduce((acc, curr) => acc + curr.price, 0);
+
+        return { name: monthName, total: monthlyTotal };
+    });
+
+    // Calculate Trend (Current Month vs Previous Month)
+    // Note: chartData indexes: 5 = Current Month, 4 = Previous Month
+    const currentMonthData = chartData[5]?.total || 0;
+    const prevMonthData = chartData[4]?.total || 0;
+
+    let spendingTrend = 0;
+    if (prevMonthData === 0) {
+        spendingTrend = currentMonthData > 0 ? 100 : 0;
+    } else {
+        spendingTrend = ((currentMonthData - prevMonthData) / prevMonthData) * 100;
+    }
+
+
+
+    const getSpendingMessage = (trend: number, current: number) => {
+        if (current === 0) return "You haven't spent anything yet. Post a request to get started.";
+        if (trend < 0) return "Optimizing your budget nicely.";
+        if (trend === 0) return "Consistent investment in your education.";
+        if (trend < 20) return "Investing more in your success.";
+        return "Accelerating your learning journey! 🚀";
+    };
+
+    const motivationalMessage = getSpendingMessage(spendingTrend, currentMonthData);
 
     const pendingOffers = offers.filter(o => o.status === "pending");
 
@@ -92,9 +136,13 @@ export default function BuyerDashboard() {
                                     PKR {totalSpent.toLocaleString()}
                                 </span>
                             </div>
+                            <Badge className={`mt-2 ${spendingTrend > 0 ? "bg-emerald-500/15 text-emerald-700" : "bg-rose-500/15 text-rose-700"} border-none font-semibold px-3 py-1.5 text-sm w-fit`}>
+                                {spendingTrend > 0 ? <TrendingUp className="h-3.5 w-3.5 mr-1" /> : <TrendingDown className="h-3.5 w-3.5 mr-1" />}
+                                {spendingTrend > 0 ? '+' : ''}{spendingTrend.toFixed(1)}% this month
+                            </Badge>
 
                             <p className="text-muted-foreground mt-4 text-base">
-                                {totalSpent > 0 ? "Keep investing in your success!" : "You haven't spent anything yet. Post a request to get started."}
+                                {motivationalMessage}
                             </p>
                         </div>
                     </CardContent>
@@ -235,34 +283,47 @@ export default function BuyerDashboard() {
                         ) : (
                             <div className="space-y-3">
                                 {requests.slice(0, 5).map((request) => (
-                                    <Link
+                                    <div
                                         key={request._id}
-                                        href={`/requests/${request._id}`}
-                                        className="block group"
+                                        className="relative flex items-center gap-4 p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-transparent hover:border-border/50 transition-all duration-300 hover:shadow-md group"
                                     >
-                                        <div className="flex items-center gap-4 p-4 rounded-xl bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-transparent hover:border-border/50 transition-all duration-300 hover:shadow-md">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="font-semibold text-foreground group-hover:text-foreground/80 transition-colors truncate">
-                                                        {request.title}
-                                                    </h4>
-                                                    <Badge className={`text-xs ${request.status === 'open'
-                                                        ? 'bg-emerald-500/15 text-emerald-700 border-none'
-                                                        : request.status === 'in_progress'
-                                                            ? 'bg-amber-500/15 text-amber-700 border-none'
-                                                            : 'bg-foreground/10 text-foreground border-none'
-                                                        }`}>
-                                                        {request.status.replace("_", " ")}
-                                                    </Badge>
-                                                </div>
-                                                <p className="text-sm text-muted-foreground line-clamp-1">{request.description}</p>
+                                        <Link
+                                            href={`/requests/${request._id}`}
+                                            className="absolute inset-0 z-0"
+                                        >
+                                            <span className="sr-only">View Details</span>
+                                        </Link>
+                                        <div className="flex-1 min-w-0 pointer-events-none">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-semibold text-foreground group-hover:text-foreground/80 transition-colors truncate">
+                                                    {request.title}
+                                                </h4>
+                                                <Badge className={`text-xs ${request.status === 'open'
+                                                    ? 'bg-emerald-500/15 text-emerald-700 border-none'
+                                                    : request.status === 'in_progress' || request.status === 'in_session'
+                                                        ? 'bg-amber-500/15 text-amber-700 border-none'
+                                                        : 'bg-foreground/10 text-foreground border-none'
+                                                    }`}>
+                                                    {formatStatus(request.status)}
+                                                </Badge>
                                             </div>
-                                            <span className="text-lg font-bold text-foreground shrink-0">
+                                            <p className="text-sm text-muted-foreground line-clamp-1">{request.description}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3 relative z-10">
+                                            {request.assignedTutorId && (
+                                                <MessageButton
+                                                    otherUserId={request.assignedTutorId}
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="rounded-full hover:bg-background/80"
+                                                />
+                                            )}
+                                            <span className="text-lg font-bold text-foreground shrink-0 pointer-events-none">
                                                 PKR {(request.budget ?? 0).toLocaleString()}
                                             </span>
-                                            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all shrink-0" />
+                                            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all shrink-0 pointer-events-none" />
                                         </div>
-                                    </Link>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -271,7 +332,7 @@ export default function BuyerDashboard() {
 
                 {/* Spending Chart */}
                 <div className="col-span-12 lg:col-span-5">
-                    <SpendingChart />
+                    <SpendingChart data={chartData} trend={spendingTrend} />
                 </div>
             </section>
         </div>

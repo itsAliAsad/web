@@ -1,13 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import ConversationList from "@/components/chat/ConversationList";
 import ChatWindow from "@/components/chat/ChatWindow";
 import { Id } from "@/convex/_generated/dataModel";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function MessagesPage() {
-    const [selectedConversationId, setSelectedConversationId] =
-        useState<Id<"conversations">>();
+function MessagesContent() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    // const [selectedConversationId, setSelectedConversationId] =
+    //     useState<Id<"conversations">>();
+
+    const paramId = searchParams.get("conversationId");
+    const selectedConversationId = paramId ? (paramId as Id<"conversations">) : undefined;
+
+    // useEffect(() => {
+    //     if (paramId) {
+    //         setSelectedConversationId(paramId as Id<"conversations">);
+    //     }
+    // }, [paramId]);
+
+    const handleSelect = (id: Id<"conversations">) => {
+        // Update URL without reload to keep state in sync
+        const newParams = new URLSearchParams(searchParams.toString());
+        newParams.set("conversationId", id);
+        router.replace(`/messages?${newParams.toString()}`);
+    };
 
     return (
         <div className="h-[calc(100vh-4rem)]">
@@ -20,7 +39,7 @@ export default function MessagesPage() {
                         <div className="flex-1 overflow-y-auto">
                             <ConversationList
                                 selectedId={selectedConversationId}
-                                onSelect={setSelectedConversationId}
+                                onSelect={handleSelect}
                             />
                         </div>
                     </div>
@@ -36,5 +55,13 @@ export default function MessagesPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <MessagesContent />
+        </Suspense>
     );
 }

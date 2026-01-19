@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { formatStatus } from "@/lib/utils";
 
 export default function ReportsTable() {
     const reports = useQuery(api.admin.getReports);
@@ -46,7 +47,7 @@ export default function ReportsTable() {
                         <TableCell>{report.description}</TableCell>
                         <TableCell>
                             <Badge variant={report.status === "pending" ? "destructive" : "outline"}>
-                                {report.status}
+                                {formatStatus(report.status)}
                             </Badge>
                         </TableCell>
                         <TableCell className="space-x-2">

@@ -11,6 +11,7 @@ import { Search, Briefcase, ArrowRight, Sparkles, ChevronDown, X } from "lucide-
 import { useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { formatStatus } from "@/lib/utils";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -230,7 +231,7 @@ export default function SearchPage() {
                                     {/* Category Badges */}
                                     <div className="flex flex-wrap gap-1.5 transition-opacity duration-300 group-hover:opacity-0">
                                         <Badge variant="secondary" className="text-xs bg-foreground/5 text-muted-foreground font-normal border-none">
-                                            {request.helpType || request.customCategory || "General"}
+                                            {formatStatus(request.helpType || request.customCategory || "General")}
                                         </Badge>
                                         {request.department && (
                                             <Badge variant="secondary" className="text-xs bg-foreground/5 text-muted-foreground font-normal border-none">

@@ -112,7 +112,15 @@ export default function NotificationDropdown() {
                                 {notification.type === "offer_received" && "New Offer Received"}
                                 {notification.type === "offer_accepted" && "Offer Accepted"}
                                 {notification.type === "ticket_resolved" && "Ticket Resolved"}
-                                {notification.type === "new_message" && "New Message"}
+                                {notification.type === "new_message" && (
+                                    <>
+                                        {(notification as any).data?.count > 1
+                                            ? `${(notification as any).data.count} new messages`
+                                            : "New Message"}
+                                        {(notification as any).sender?.name &&
+                                            ` from ${(notification as any).sender.name}`}
+                                    </>
+                                )}
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 {new Date(notification.createdAt).toLocaleDateString()}{" "}

@@ -17,6 +17,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import TicketHistorySection from "./TicketHistorySection";
 import { Separator } from "@/components/ui/separator";
+import { formatStatus } from "@/lib/utils";
 
 interface DealSidebarProps {
     otherUserId: Id<"users">;
@@ -145,7 +146,7 @@ export default function DealSidebar({ otherUserId }: DealSidebarProps) {
                                                         >
                                                             <StatusIcon className="h-3 w-3" />
                                                             <span className="text-xs font-medium capitalize">
-                                                                {deal.status}
+                                                                {formatStatus(deal.status)}
                                                             </span>
                                                         </Badge>
                                                     </div>

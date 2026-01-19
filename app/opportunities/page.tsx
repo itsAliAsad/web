@@ -31,6 +31,7 @@ import { Id } from "@/convex/_generated/dataModel";
 
 import SearchBar from "@/components/search/SearchBar";
 import Filters from "@/components/search/Filters";
+import { formatStatus } from "@/lib/utils";
 
 export default function OpportunitiesPage() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -121,7 +122,7 @@ export default function OpportunitiesPage() {
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <CardTitle className="text-lg">{request.title}</CardTitle>
-                                    <Badge>{request.helpType || request.customCategory || 'General'}</Badge>
+                                    <Badge>{formatStatus(request.helpType || request.customCategory || 'General')}</Badge>
                                 </div>
                                 <CardDescription>
                                     Budget: PKR {request.budget ?? 0} • Due:{" "}
@@ -147,7 +148,7 @@ export default function OpportunitiesPage() {
                                         <DialogHeader>
                                             <DialogTitle>Submit Offer</DialogTitle>
                                             <DialogDescription>
-                                                Enter your price for this task. The buyer's budget is PKR{" "}
+                                                Enter your price for this task. The buyer&apos;s budget is PKR{" "}
                                                 {request.budget}.
                                             </DialogDescription>
                                         </DialogHeader>

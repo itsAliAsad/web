@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { PaginationResult } from "convex/server";
+
 import { requireUser } from "./utils";
 
 export const listConversations = query({
@@ -141,13 +141,42 @@ export const send = mutation({
                     ? conversation.participant2
                     : conversation.participant1;
 
-            await ctx.db.insert("notifications", {
-                userId: recipientId,
-                type: "new_message",
-                data: { conversationId, messageId },
-                isRead: false,
-                createdAt: Date.now(),
-            });
+            // Check for existing unread notification for this conversation
+            const existingNotification = await ctx.db
+                .query("notifications")
+                .withIndex("by_user_and_read", (q) =>
+                    q.eq("userId", recipientId).eq("isRead", false)
+                )
+                .filter((q) =>
+                    q.and(
+                        q.eq(q.field("type"), "new_message"),
+                        q.eq(q.field("data.conversationId"), conversationId)
+                    )
+                )
+                .first();
+
+            if (existingNotification) {
+                // Update existing notification
+                const newCount = (existingNotification.data.count || 1) + 1;
+                await ctx.db.patch(existingNotification._id, {
+                    data: { ...existingNotification.data, count: newCount, lastMessageId: messageId },
+                    createdAt: Date.now(), // Bump to top
+                });
+            } else {
+                // Create new notification
+                await ctx.db.insert("notifications", {
+                    userId: recipientId,
+                    type: "new_message",
+                    data: {
+                        conversationId,
+                        messageId,
+                        senderId: user._id,
+                        count: 1,
+                    },
+                    isRead: false,
+                    createdAt: Date.now(),
+                });
+            }
         }
 
         return messageId;
@@ -201,19 +230,74 @@ export const getConversation = query({
     },
 });
 
+export const getOrCreateConversation = mutation({
+    args: { otherUserId: v.id("users") },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx);
+
+        // Check for accepted offer between these users
+        const offerAsStudent = await ctx.db
+            .query("offers")
+            .withIndex("by_student_and_tutor", (q) =>
+                q.eq("studentId", user._id).eq("tutorId", args.otherUserId)
+            )
+            .filter((q) => q.eq(q.field("status"), "accepted"))
+            .first();
+
+        const offerAsTutor = await ctx.db
+            .query("offers")
+            .withIndex("by_tutor", (q) => q.eq("tutorId", user._id))
+            .filter((q) =>
+                q.and(
+                    q.eq(q.field("studentId"), args.otherUserId),
+                    q.eq(q.field("status"), "accepted")
+                )
+            )
+            .first();
+
+        if (!offerAsStudent && !offerAsTutor) {
+            throw new Error("Messaging is only allowed after an offer has been accepted.");
+        }
+
+        // Find existing conversation
+        const existing1 = await ctx.db
+            .query("conversations")
+            .withIndex("by_participant1", (q) => q.eq("participant1", user._id))
+            .filter((q) => q.eq(q.field("participant2"), args.otherUserId))
+            .first();
+
+        const existing2 = await ctx.db
+            .query("conversations")
+            .withIndex("by_participant1", (q) => q.eq("participant1", args.otherUserId))
+            .filter((q) => q.eq(q.field("participant2"), user._id))
+            .first();
+
+        let conversationId = existing1?._id || existing2?._id;
+
+        if (!conversationId) {
+            conversationId = await ctx.db.insert("conversations", {
+                participant1: user._id,
+                participant2: args.otherUserId,
+                updatedAt: Date.now(),
+            });
+        }
+
+        return conversationId;
+    },
+});
+
 export const canSendMessage = query({
     args: { conversationId: v.id("conversations") },
     handler: async (ctx, args) => {
-        // Return true if not authenticated (don't throw)
         const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return true;
+        if (!identity) return false;
 
         const user = await ctx.db
             .query("users")
             .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
             .unique();
 
-        if (!user) return true;
+        if (!user) return false;
 
         const conversation = await ctx.db.get(args.conversationId);
         if (!conversation) return false;
@@ -231,24 +315,33 @@ export const canSendMessage = query({
                 : conversation.participant1;
 
         // Check if there are any accepted offers between the two users
-        // where current user is the tutor
+        // Check as student
+        const acceptedOfferAsStudent = await ctx.db
+            .query("offers")
+            .withIndex("by_student_and_tutor", (q) =>
+                q.eq("studentId", user._id).eq("tutorId", otherUserId)
+            )
+            .filter((q) => q.eq(q.field("status"), "accepted"))
+            .first();
+
+        // Check as tutor
         const acceptedOfferAsTutor = await ctx.db
             .query("offers")
-            .filter(q =>
+            .withIndex("by_tutor", (q) => q.eq("tutorId", user._id))
+            .filter((q) =>
                 q.and(
-                    q.eq(q.field("tutorId"), user._id),
                     q.eq(q.field("studentId"), otherUserId),
                     q.eq(q.field("status"), "accepted")
                 )
             )
             .first();
 
-        // Tutors cannot send messages after their offer has been accepted
-        if (acceptedOfferAsTutor) {
-            return false;
+        // STRICT RULE: Only allow messaging if an accepted offer exists
+        if (acceptedOfferAsStudent || acceptedOfferAsTutor) {
+            return true;
         }
 
-        return true;
+        return false;
     },
 });
 

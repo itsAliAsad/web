@@ -2,19 +2,36 @@
 
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingDown } from "lucide-react"
+import { TrendingDown, TrendingUp } from "lucide-react"
 
-const data = [
-    { name: "Jan", total: Math.floor(Math.random() * 2000) + 500 },
-    { name: "Feb", total: Math.floor(Math.random() * 2000) + 500 },
-    { name: "Mar", total: Math.floor(Math.random() * 2000) + 500 },
-    { name: "Apr", total: Math.floor(Math.random() * 2000) + 500 },
-    { name: "May", total: Math.floor(Math.random() * 2000) + 500 },
-    { name: "Jun", total: Math.floor(Math.random() * 2000) + 500 },
-]
+interface ChartData {
+    name: string;
+    total: number;
+}
 
-export function SpendingChart() {
+interface SpendingChartProps {
+    data: ChartData[];
+    trend?: number;
+}
+
+export function SpendingChart({ data, trend }: SpendingChartProps) {
     const total = data.reduce((acc, curr) => acc + curr.total, 0)
+
+    // Default to positive (bad for spending usually, but we track change)
+    // For spending: Increase = Red (bad?), Decrease = Green (good?)
+    // Usually "trend" just shows direction. Let's keep color logic: Red = Up (more spending), Green = Down (less spending)
+    // Actually, consistency with Earnings: 
+    // Earnings: Up = Green (Good), Down = Red (Bad)
+    // Spending: Up = Red (Warning), Down = Green (Good) - Let's stick to standard color meanings contextually
+
+    // BUT checking original code: it had "text-rose-600" (Red) for "-8%" with TrendingDown. 
+    // This implies Red was used for the metric itself or just hardcoded style.
+    // Let's make it standard: Green = Up, Red = Down for generic "Trend".
+    // OR if we want "Saving":
+    // Let's stick to: Increase in spending = Red, Decrease = Green.
+
+    const safeTrend = trend || 0;
+    const isIncrease = safeTrend > 0; // Spending went UP
 
     return (
         <Card className="glass-card border-none shadow-glow-coral h-full flex flex-col overflow-hidden">
@@ -24,10 +41,12 @@ export function SpendingChart() {
                         <CardTitle className="text-xl font-bold tracking-tight">Spending</CardTitle>
                         <CardDescription className="text-sm">Your 6-month overview</CardDescription>
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-rose-600">
-                        <TrendingDown className="h-4 w-4" />
-                        <span>-8%</span>
-                    </div>
+                    {trend !== undefined && (
+                        <div className={`flex items-center gap-1.5 text-sm font-medium ${isIncrease ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {isIncrease ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                            <span>{isIncrease ? '+' : ''}{safeTrend.toFixed(1)}%</span>
+                        </div>
+                    )}
                 </div>
                 <div className="pt-2">
                     <span className="text-3xl font-bold tracking-tight text-foreground">

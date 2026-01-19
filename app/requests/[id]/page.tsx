@@ -22,8 +22,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ReportDialog from "@/components/trust/ReportDialog";
 import VerifiedBadge from "@/components/trust/VerifiedBadge";
-import { MessageSquare, CheckCircle2, Clock, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Clock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import MessageButton from "@/components/chat/MessageButton";
+import { formatStatus } from "@/lib/utils";
+import StarRating from "@/components/reviews/StarRating";
 
 export default function RequestDetailsPage() {
     const params = useParams();
@@ -47,7 +50,7 @@ export default function RequestDetailsPage() {
     const createOffer = useMutation(api.offers.create);
 
     const isOwner = currentUser && request && currentUser._id === request.studentId;
-    const isSeller = currentUser && request && currentUser._id !== request.studentId;
+    // const isSeller = currentUser && request && currentUser._id !== request.studentId;
     const acceptedOffer = offers?.find((o) => o.status === "accepted");
     const acceptedByCurrentSeller = offers?.find(
         (o) => o.status === "accepted" && currentUser && o.tutorId === currentUser._id
@@ -99,8 +102,9 @@ export default function RequestDetailsPage() {
             });
             toast.success("Offer submitted successfully!");
             setOfferPrice("");
-        } catch (error: any) {
-            toast.error(error.message || "Failed to submit offer");
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to submit offer";
+            toast.error(message);
             console.error(error);
         } finally {
             setIsSubmittingOffer(false);
@@ -183,10 +187,10 @@ export default function RequestDetailsPage() {
                         {request.status === 'open' && <Clock className="h-3 w-3 mr-1" />}
                         {request.status === 'in_progress' && <Clock className="h-3 w-3 mr-1" />}
                         {request.status === 'resolved' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                        {request.status}
+                        {formatStatus(request.status)}
                     </Badge>
                     <Badge variant="secondary" className="bg-foreground/5 text-muted-foreground border-none font-normal">
-                        {request.helpType || request.customCategory || 'General'}
+                        {formatStatus(request.helpType || request.customCategory || 'General')}
                     </Badge>
                     <span className="text-lg font-bold text-foreground ml-2">
                         PKR {(request.budget || 0).toLocaleString()}
@@ -223,13 +227,12 @@ export default function RequestDetailsPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-wrap gap-3">
-                                    <Button
-                                        onClick={() => window.location.href = "/messages"}
+                                    <MessageButton
+                                        otherUserId={isOwner ? (acceptedOffer?.tutorId as Id<"users">) : request.studentId}
                                         className="rounded-full h-11 px-6"
                                     >
-                                        <MessageSquare className="h-4 w-4 mr-2" />
                                         Message {isOwner ? "Seller" : "Buyer"}
-                                    </Button>
+                                    </MessageButton>
                                     {isOwner && (
                                         <Button
                                             variant="outline"
@@ -248,6 +251,92 @@ export default function RequestDetailsPage() {
 
                 {/* Right Column - Offers / Submit Offer */}
                 <div className="space-y-6">
+                    {/* About the Student (Visible to everyone except the student) */}
+                    {!isOwner && request.student && (
+                        <Card className="glass-card border-none">
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-xl font-bold">About the Student</CardTitle>
+                                    {(request.student.isVerified) && <VerifiedBadge />}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-12 w-12 rounded-full bg-foreground/5 overflow-hidden">
+                                        {request.student.image ? (
+                                            <img src={request.student.image} alt={request.student.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="h-full w-full flex items-center justify-center bg-violet-500/10 text-violet-600 font-bold text-lg">
+                                                {request.student.name?.[0]}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-foreground">{request.student.name}</p>
+                                        <p className="text-sm text-muted-foreground">{request.student.university || "University Student"}</p>
+                                    </div>
+                                </div>
+
+                                {request.student.reputation > 0 && (
+                                    <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-2 rounded-lg w-fit">
+                                        <StarRating rating={request.student.reputation} />
+                                        <span className="text-sm font-medium text-amber-700">{request.student.reputation.toFixed(1)}</span>
+                                    </div>
+                                )}
+
+                                <MessageButton
+                                    otherUserId={request.student._id}
+                                    className="w-full rounded-full"
+                                    variant="outline"
+                                >
+                                    Message Student
+                                </MessageButton>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* About the Tutor (Visible to Student when assigned) */}
+                    {isOwner && acceptedOffer && (
+                        <Card className="glass-card border-none">
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-xl font-bold">About your Tutor</CardTitle>
+                                    {acceptedOffer.sellerIsVerified && <VerifiedBadge />}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-12 w-12 rounded-full bg-foreground/5 overflow-hidden flex items-center justify-center bg-teal-500/10 text-teal-600 font-bold text-lg">
+                                        {acceptedOffer.tutorName?.[0] || "T"}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-foreground">{acceptedOffer.tutorName}</p>
+                                        <p className="text-sm text-muted-foreground">Assigned Tutor</p>
+                                    </div>
+                                </div>
+
+                                {acceptedOffer.tutorBio && (
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {acceptedOffer.tutorBio}
+                                    </p>
+                                )}
+
+                                {acceptedOffer.tutorLevel && (
+                                    <Badge variant="secondary" className="bg-teal-500/10 text-teal-700 border-none">
+                                        {acceptedOffer.tutorLevel}
+                                    </Badge>
+                                )}
+
+                                <MessageButton
+                                    otherUserId={acceptedOffer.tutorId}
+                                    className="w-full rounded-full"
+                                >
+                                    Message Tutor
+                                </MessageButton>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {isOwner ? (
                         <>
                             <div className="flex items-center justify-between">
@@ -282,14 +371,41 @@ export default function RequestDetailsPage() {
                                                         </Badge>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-sm text-muted-foreground">
+                                                        <span className="text-base font-semibold text-foreground">
                                                             {offer.tutorName || `Tutor ${offer.tutorId?.toString().slice(0, 6)}...`}
                                                         </span>
                                                         {offer.sellerIsVerified && <VerifiedBadge />}
                                                     </div>
                                                     <ReportDialog targetId={offer.tutorId} requestId={ticketId} />
+                                                </div>
+
+                                                {/* Tutor Details */}
+                                                <div className="space-y-3 mb-4">
+                                                    {/* Level Badge */}
+                                                    {offer.tutorLevel && (
+                                                        <Badge variant="secondary" className="bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 border-none transition-colors">
+                                                            {offer.tutorLevel} in this course
+                                                        </Badge>
+                                                    )}
+
+                                                    {/* Bio */}
+                                                    {offer.tutorBio && (
+                                                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                                                            {offer.tutorBio}
+                                                        </p>
+                                                    )}
+
+                                                    {/* Other Courses */}
+                                                    {offer.tutorCourses && offer.tutorCourses.length > 0 && (
+                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                            <span className="font-medium text-foreground/80">Also teaches:</span>
+                                                            <span className="truncate max-w-[200px]">
+                                                                {offer.tutorCourses.join(", ")}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 {request.status === "open" && (
                                                     <Button
@@ -300,16 +416,15 @@ export default function RequestDetailsPage() {
                                                         Accept Offer
                                                     </Button>
                                                 )}
-                                                {offer.status === "accepted" && (request.status === "in_session" || request.status === "in_progress") && (
-                                                    <Button
+                                                {offer.status === "accepted" && (request.status === "in_session" || request.status === "in_progress") && !isOwner && (
+                                                    <MessageButton
+                                                        otherUserId={offer.tutorId}
                                                         size="sm"
                                                         variant="outline"
                                                         className="w-full rounded-full h-10"
-                                                        onClick={() => window.location.href = "/messages"}
                                                     >
-                                                        <MessageSquare className="h-4 w-4 mr-2" />
                                                         Message Tutor
-                                                    </Button>
+                                                    </MessageButton>
                                                 )}
                                             </CardContent>
                                         </Card>
@@ -321,25 +436,41 @@ export default function RequestDetailsPage() {
                         <>
                             {request.status === "open" ? (
                                 offers.find(o => o.tutorId === currentUser?._id) ? (
-                                    <Card className="glass-card border-none shadow-glow-teal">
+                                    <Card className={`glass-card border-none ${offers.find(o => o.tutorId === currentUser?._id)?.status === 'accepted' ? 'shadow-glow-teal' : 'shadow-glow-teal'}`}>
                                         <CardHeader className="pb-4">
                                             <CardTitle className="text-xl font-bold flex items-center gap-2">
                                                 <CheckCircle2 className="h-5 w-5 text-teal-600" />
-                                                Offer Submitted
+                                                {offers.find(o => o.tutorId === currentUser?._id)?.status === 'accepted' ? 'Offer Accepted' : 'Offer Submitted'}
                                             </CardTitle>
                                             <CardDescription>
-                                                Your bid has been placed. Waiting for response.
+                                                {offers.find(o => o.tutorId === currentUser?._id)?.status === 'accepted'
+                                                    ? "Congratulations! Your offer was accepted."
+                                                    : "Your bid has been placed. Waiting for response."}
                                             </CardDescription>
                                         </CardHeader>
-                                        <CardContent>
+                                        <CardContent className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-2xl font-bold text-foreground">
                                                     PKR {offers.find(o => o.tutorId === currentUser?._id)?.price?.toLocaleString()}
                                                 </span>
-                                                <Badge variant="secondary" className="bg-foreground/5 text-muted-foreground border-none">
-                                                    Pending
+                                                <Badge
+                                                    variant="secondary"
+                                                    className={`border-none ${offers.find(o => o.tutorId === currentUser?._id)?.status === 'accepted'
+                                                        ? 'bg-teal-500/15 text-teal-700'
+                                                        : 'bg-foreground/5 text-muted-foreground'
+                                                        }`}
+                                                >
+                                                    {offers.find(o => o.tutorId === currentUser?._id)?.status === 'accepted' ? 'Accepted' : 'Pending'}
                                                 </Badge>
                                             </div>
+                                            {offers.find(o => o.tutorId === currentUser?._id)?.status === 'accepted' && (
+                                                <MessageButton
+                                                    otherUserId={request.studentId}
+                                                    className="w-full rounded-full h-11"
+                                                >
+                                                    Message Student
+                                                </MessageButton>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 ) : (
@@ -385,7 +516,7 @@ export default function RequestDetailsPage() {
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-muted-foreground">
-                                            This request is currently <span className="font-medium text-foreground">{request.status}</span>.
+                                            This request is currently <span className="font-medium text-foreground">{formatStatus(request.status)}</span>.
                                             No new offers are being accepted.
                                         </p>
                                     </CardContent>

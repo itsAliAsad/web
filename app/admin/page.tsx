@@ -6,6 +6,7 @@ import ReportsTable from "@/components/admin/ReportsTable";
 import UserManagement from "@/components/admin/UserManagement";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,16 +33,16 @@ export default function AdminPage() {
             toast.success("Announcement created");
             setAnnouncementTitle("");
             setAnnouncementContent("");
-        } catch (error) {
+        } catch {
             toast.error("Failed to create announcement");
         }
     };
 
-    const handleToggleAnnouncement = async (id: any, isActive: boolean) => {
+    const handleToggleAnnouncement = async (id: Id<"announcements">, isActive: boolean) => {
         try {
             await setAnnouncementStatus({ id, isActive });
             toast.success(isActive ? "Announcement activated" : "Announcement deactivated");
-        } catch (error) {
+        } catch {
             toast.error("Failed to update announcement");
         }
     };
