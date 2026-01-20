@@ -9,6 +9,8 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as crons from "../crons.js";
+import type * as debug from "../debug.js";
 import type * as init from "../init.js";
 import type * as maintenance from "../maintenance.js";
 import type * as messages from "../messages.js";
@@ -35,6 +37,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  crons: typeof crons;
+  debug: typeof debug;
   init: typeof init;
   maintenance: typeof maintenance;
   messages: typeof messages;

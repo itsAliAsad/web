@@ -1,216 +1,133 @@
-import { internalMutation, internalQuery } from "./_generated/server";
+import { mutation } from "./_generated/server";
+import { v } from "convex/values";
 
-
-const USERS = [
-    {
-        name: "Alice Johnson",
-        email: "alice.johnson@example.com",
-        bio: "Experienced tutor with a passion for teaching CS.",
-        university: "LUMS",
-        role: "tutor" as const,
-    },
-    {
-        name: "Bob Smith",
-        email: "bob.smith@example.com",
-        bio: "CS student looking for help with projects.",
-        university: "LUMS",
-        role: "student" as const,
-    },
-    {
-        name: "Charlie Brown",
-        email: "charlie.brown@example.com",
-        bio: "Math tutor helping students ace their exams.",
-        university: "LUMS",
-        role: "tutor" as const,
-    },
-    {
-        name: "Diana Prince",
-        email: "diana.prince@example.com",
-        bio: "Content writer and editor.",
-        university: "LUMS",
-        role: "student" as const,
-    },
-    {
-        name: "Evan Wright",
-        email: "evan.wright@example.com",
-        bio: "Full-stack developer and UI/UX enthusiast.",
-        university: "LUMS",
-        role: "tutor" as const,
-    },
-];
-
-const TICKET_TITLES = [
-    "Help with Data Structures Assignment",
-    "Debug my Python script",
-    "Explain Calculus concepts",
-    "Fix bugs in React app",
-    "Review my exam prep notes",
-    "Help understand Linear Algebra",
-    "Code review for project",
-    "Explain database design",
-    "Help with algorithm optimization",
-    "Debugging session needed",
-];
-
-export const seedData = internalMutation({
+export const seedJobWithOffers = mutation({
     args: {},
     handler: async (ctx) => {
-        const userIds = [];
+        // 1. Create a student
+        const studentId = await ctx.db.insert("users", {
+            name: "Test Student",
+            email: "student@test.com",
+            tokenIdentifier: "test_student_" + Date.now(),
+            reputation: 5,
+            role: "student",
+            isVerified: true,
+        });
 
-        // First, ensure we have some courses
-        const courses = await ctx.db.query("university_courses").collect();
-        if (courses.length === 0) {
-            // Seed some courses first
-            const defaultCourses = [
-                { code: "CS 100", name: "Computational Problem Solving", department: "CS", isActive: true },
-                { code: "CS 200", name: "Data Structures", department: "CS", isActive: true },
-                { code: "MATH 101", name: "Calculus I", department: "Math", isActive: true },
-            ];
-            for (const c of defaultCourses) {
-                await ctx.db.insert("university_courses", c);
-            }
-        }
+        // Create a dummy student for history
+        const dummyStudentId = await ctx.db.insert("users", {
+            name: "Dummy History Student",
+            email: "dummy_seed_history@test.com",
+            tokenIdentifier: "dummy_seed_" + Date.now(),
+            reputation: 5,
+            role: "student",
+            isVerified: false,
+        });
 
-        const allCourses = await ctx.db.query("university_courses").collect();
+        // 2. Create a course (to test expertise match)
+        const courseId = await ctx.db.insert("university_courses", {
+            code: "CS 200",
+            name: "Data Structures",
+            department: "CS",
+            isActive: true,
+        });
 
-        for (let i = 0; i < USERS.length; i++) {
-            const userData = USERS[i];
-            const tokenIdentifier = `test-user-${i + 1}`;
+        // 3. Create a ticket (Job Posting)
+        const ticketId = await ctx.db.insert("tickets", {
+            studentId,
+            title: "Help with Data Structures Project (Seed Test)",
+            description: "Need help implementing a Red-Black Tree. This is a seeded test job with 15 offers.",
+            courseId,
+            department: "CS",
+            status: "open",
+            urgency: "high",
+            helpType: "Debugging",
+            createdAt: Date.now(),
+            budget: 5000,
+        });
 
-            // Check if user exists
-            const existingUser = await ctx.db
-                .query("users")
-                .withIndex("by_token", (q) => q.eq("tokenIdentifier", tokenIdentifier))
-                .unique();
+        console.log(`Created Ticket: ${ticketId}`);
 
-            let userId;
-            if (existingUser) {
-                userId = existingUser._id;
-            } else {
-                userId = await ctx.db.insert("users", {
-                    name: userData.name,
-                    email: userData.email,
-                    tokenIdentifier: tokenIdentifier,
-                    bio: userData.bio,
-                    university: userData.university,
-                    reputation: 0,
-                    ratingSum: 0,
-                    ratingCount: 0,
-                    role: userData.role,
-                    isVerified: true,
-                    isAdmin: false,
-                    isBanned: false,
-                    termsAcceptedAt: new Date().toISOString(),
+        // 4. Create 15 Tutors and Offers
+        const tutors = [];
+        for (let i = 1; i <= 15; i++) {
+            const isVerified = Math.random() > 0.5;
+            const reputation = 3 + Math.random() * 2; // 3.0 to 5.0
+            const isOnline = Math.random() > 0.7; // 30% chance online
+            const completedJobs = Math.floor(Math.random() * 20);
+
+            // Create user
+            const tutorId = await ctx.db.insert("users", {
+                name: `Tutor ${i} (${reputation.toFixed(1)})`,
+                email: `tutor${i}@test.com`,
+                tokenIdentifier: `test_tutor_${i}_` + Date.now(),
+                reputation,
+                role: "tutor",
+                isVerified,
+            });
+
+            // Create profile
+            await ctx.db.insert("tutor_profiles", {
+                userId: tutorId,
+                bio: `I am tutor #${i}. I have completed ${completedJobs} jobs.`,
+                isOnline,
+                lastActiveAt: Date.now() - Math.random() * 86400000 * 2, // Random time in last 48h
+                creditBalance: 0,
+                settings: {
+                    acceptingRequests: true,
+                    acceptingPaid: true,
+                    acceptingFree: false,
+                    minRate: 1000,
+                    allowedHelpTypes: ["Debugging"],
+                }
+            });
+
+            // Add expertise to some (randomly)
+            if (Math.random() > 0.4) {
+                await ctx.db.insert("tutor_offerings", {
+                    tutorId,
+                    courseId,
+                    level: Math.random() > 0.5 ? "Expert" : "Intermediate",
                 });
             }
-            userIds.push(userId);
 
-            // Create 5 tickets for student users
-            if (userData.role === "student") {
-                for (let j = 0; j < 5; j++) {
-                    const title = TICKET_TITLES[(i * 5 + j) % TICKET_TITLES.length];
-                    const course = allCourses[j % allCourses.length];
-                    await ctx.db.insert("tickets", {
-                        studentId: userId,
-                        courseId: course._id,
-                        title: title,
-                        description: `This is a test ticket for ${title}. Need help ASAP!`,
-                        budget: 500 + (j * 100),
-                        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                        status: "open",
-                        urgency: j % 3 === 0 ? "high" : j % 3 === 1 ? "medium" : "low",
-                        helpType: "Debugging",
-                        createdAt: Date.now(),
-                    });
-                }
+            // Add dummy completed jobs (offers) so our count logic works
+            for (let j = 0; j < completedJobs; j++) {
+                // Create a dummy resolved ticket
+                const dummyTicketId = await ctx.db.insert("tickets", {
+                    studentId: dummyStudentId,
+                    title: "Past Job (Seed)",
+                    description: "Auto-generated history",
+                    status: "resolved",
+                    budget: 1000,
+                    createdAt: Date.now() - 10000000,
+                    assignedTutorId: tutorId,
+                    urgency: "low",
+                    helpType: "Debugging",
+                });
+
+                await ctx.db.insert("offers", {
+                    ticketId: dummyTicketId,
+                    studentId: dummyStudentId,
+                    tutorId,
+                    price: 1000,
+                    status: "accepted",
+                });
             }
-        }
 
-        return "Seeding completed successfully!";
-    },
-});
-
-export const checkData = internalQuery({
-    args: {},
-    handler: async (ctx) => {
-        const users = await ctx.db.query("users").collect();
-        const tickets = await ctx.db.query("tickets").collect();
-        return {
-            userCount: users.length,
-            ticketCount: tickets.length,
-            users: users.map((u) => ({ name: u.name, id: u._id })),
-        };
-    },
-});
-
-// Seed 20 diverse dummy tickets
-const DUMMY_TICKETS = [
-    { title: "Help with Binary Search Trees", helpType: "concept", urgency: "high" as const },
-    { title: "Debug my Python Flask API", helpType: "debugging", urgency: "high" as const },
-    { title: "Explain Recursion step-by-step", helpType: "concept", urgency: "medium" as const },
-    { title: "React useState not updating", helpType: "debugging", urgency: "high" as const },
-    { title: "Midterm prep for Calculus", helpType: "exam_prep", urgency: "medium" as const },
-    { title: "Code review for my Java project", helpType: "review", urgency: "low" as const },
-    { title: "Need help with SQL joins", helpType: "concept", urgency: "medium" as const },
-    { title: "Fix CSS layout issues", helpType: "debugging", urgency: "low" as const },
-    { title: "Explain Big O notation", helpType: "concept", urgency: "low" as const },
-    { title: "Help with Dynamic Programming", helpType: "concept", urgency: "high" as const },
-    { title: "Debug Node.js async/await", helpType: "debugging", urgency: "medium" as const },
-    { title: "Physics exam prep - Mechanics", helpType: "exam_prep", urgency: "high" as const },
-    { title: "Review my resume", helpType: "review", urgency: "low" as const, isGeneral: true, category: "career_advice" },
-    { title: "Career guidance for CS major", helpType: "other", urgency: "low" as const, isGeneral: true, category: "mentorship" },
-    { title: "Help with Git merge conflicts", helpType: "debugging", urgency: "medium" as const },
-    { title: "Explain OOP principles", helpType: "concept", urgency: "low" as const },
-    { title: "Final project code review", helpType: "review", urgency: "high" as const },
-    { title: "Debug machine learning model", helpType: "debugging", urgency: "medium" as const },
-    { title: "General mentorship session", helpType: "other", urgency: "low" as const, isGeneral: true, category: "mentorship" },
-    { title: "Essay review for writing class", helpType: "review", urgency: "medium" as const, isGeneral: true, category: "essay_review" },
-];
-
-export const seed20Tickets = internalMutation({
-    args: {},
-    handler: async (ctx) => {
-        // Get existing users and courses
-        const users = await ctx.db.query("users").collect();
-        const courses = await ctx.db.query("university_courses").collect();
-
-        if (users.length === 0) {
-            throw new Error("No users found. Run seedData first.");
-        }
-        if (courses.length === 0) {
-            throw new Error("No courses found. Run seedData first.");
-        }
-
-        // Get student users only
-        const students = users.filter(u => u.role === "student");
-        if (students.length === 0) {
-            // Use any user if no students
-            students.push(users[0]);
-        }
-
-        let created = 0;
-        for (let i = 0; i < DUMMY_TICKETS.length; i++) {
-            const ticket = DUMMY_TICKETS[i];
-            const student = students[i % students.length];
-            const course = courses[i % courses.length];
-
-            await ctx.db.insert("tickets", {
-                studentId: student._id,
-                courseId: ticket.isGeneral ? undefined : course._id,
-                customCategory: ticket.isGeneral ? ticket.category : undefined,
-                department: ticket.isGeneral ? undefined : course.department,
-                title: ticket.title,
-                description: `This is a test ticket: ${ticket.title}. I need help with this topic as soon as possible. Looking for a tutor who can explain clearly.`,
-                budget: 300 + (i * 50),
-                deadline: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
-                status: "open",
-                urgency: ticket.urgency,
-                helpType: ticket.helpType,
-                createdAt: Date.now() - (i * 60 * 60 * 1000), // Stagger creation times
+            // Create Offer for THIS job
+            const price = 2000 + Math.floor(Math.random() * 5000); // 2000 - 7000
+            const offerId = await ctx.db.insert("offers", {
+                ticketId,
+                studentId,
+                tutorId,
+                price,
+                status: "pending",
             });
-            created++;
+
+            tutors.push({ name: `Tutor ${i}`, offerId });
         }
 
-        return `Created ${created} test tickets!`;
+        return { ticketId, studentId, message: "Created 15 offers" };
     },
 });

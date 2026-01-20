@@ -16,6 +16,10 @@ export const create = mutation({
             throw new Error("Ticket not available");
         }
 
+        if (user._id === ticket.studentId) {
+            throw new Error("You cannot submit an offer to your own request");
+        }
+
         // Check if user already offered
         const existingOffer = await ctx.db
             .query("offers")
@@ -61,7 +65,10 @@ export const listByTicket = query({
             .withIndex("by_ticket", (q) => q.eq("ticketId", args.ticketId))
             .collect();
 
-        return await Promise.all(
+        // Find max price for price score calculation
+        const maxPrice = Math.max(...offers.map(o => o.price), 1);
+
+        const enrichedOffers = await Promise.all(
             offers.map(async (offer) => {
                 const tutor = await ctx.db.get(offer.tutorId);
                 const profile = await ctx.db
@@ -70,7 +77,8 @@ export const listByTicket = query({
                     .unique();
 
                 // Get level for this specific course if applicable
-                let tutorLevel = undefined;
+                let tutorLevel: string | undefined = undefined;
+                let hasCourseExpertise = false;
                 if (ticket.courseId) {
                     const specificOffering = await ctx.db
                         .query("tutor_offerings")
@@ -78,22 +86,80 @@ export const listByTicket = query({
                         .filter((q) => q.eq(q.field("courseId"), ticket.courseId))
                         .first();
                     tutorLevel = specificOffering?.level;
+                    hasCourseExpertise = !!specificOffering;
                 }
 
-                // Get other courses they teach (limit 3)
+                // Get all tutor offerings for related courses check
                 const allOfferings = await ctx.db
                     .query("tutor_offerings")
                     .withIndex("by_tutor", (q) => q.eq("tutorId", offer.tutorId))
-                    .take(3);
+                    .collect();
 
+                // Get course names (limit 3 for display)
                 const courseNames = await Promise.all(
-                    allOfferings.map(async (offering) => {
+                    allOfferings.slice(0, 3).map(async (offering) => {
                         const course = await ctx.db.get(offering.courseId);
                         return course?.code;
                     })
                 );
                 const validCourseNames = courseNames.filter(Boolean) as string[];
 
+                // Check for related courses in same department
+                let hasRelatedCourses = false;
+                if (ticket.department) {
+                    for (const offering of allOfferings) {
+                        const course = await ctx.db.get(offering.courseId);
+                        if (course?.department === ticket.department) {
+                            hasRelatedCourses = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Also count all resolved tickets assigned to this tutor
+                const allCompletedJobs = await ctx.db
+                    .query("offers")
+                    .withIndex("by_tutor", (q) => q.eq("tutorId", offer.tutorId))
+                    .filter((q) => q.eq(q.field("status"), "accepted"))
+                    .collect();
+                const completedJobs = allCompletedJobs.length;
+
+                // Calculate match percentage (0-100)
+                let matchPercent = 0;
+
+                // Course expertise: +40%
+                if (hasCourseExpertise) matchPercent += 40;
+
+                // Expertise level: Intermediate +10%, Expert +15%
+                if (tutorLevel === "Expert") matchPercent += 15;
+                else if (tutorLevel === "Intermediate") matchPercent += 10;
+
+                // Related courses in department: +10%
+                if (hasRelatedCourses) matchPercent += 10;
+
+                // Verified status: +10%
+                if (tutor?.isVerified) matchPercent += 10;
+
+                // Online status: online now +15%, active in 24h +8%
+                const now = Date.now();
+                const isOnline = profile?.isOnline ?? false;
+                const lastActiveAt = profile?.lastActiveAt ?? 0;
+                const activeIn24h = (now - lastActiveAt) < 24 * 60 * 60 * 1000;
+                if (isOnline) matchPercent += 15;
+                else if (activeIn24h) matchPercent += 8;
+
+                // Completed jobs: 10+ jobs +10%, 5+ jobs +5%
+                if (completedJobs >= 10) matchPercent += 10;
+                else if (completedJobs >= 5) matchPercent += 5;
+
+                // Reputation (0-5 scale, normalize to 0-100 for scoring)
+                const reputation = tutor?.reputation ?? 0;
+
+                // Price score (lower is better, 0-100)
+                const priceScore = 100 - (offer.price / maxPrice * 100);
+
+                // Rank score: 40% reputation, 35% match, 25% price
+                const rankScore = (reputation / 5 * 100 * 0.4) + (matchPercent * 0.35) + (priceScore * 0.25);
 
                 return {
                     ...offer,
@@ -104,11 +170,22 @@ export const listByTicket = query({
                     sellerIsVerified: Boolean(tutor?.isVerified),
                     tutorBio: profile?.bio,
                     tutorLevel,
-                    tutorCourses: validCourseNames
+                    tutorCourses: validCourseNames,
+                    // New fields for ranking
+                    tutorReputation: reputation,
+                    completedJobs,
+                    isOnline,
+                    lastActiveAt,
+                    matchPercent,
+                    rankScore,
                 };
             })
         );
+
+        // Sort by rankScore descending (best match first)
+        return enrichedOffers.sort((a, b) => b.rankScore - a.rankScore);
     },
+
 });
 
 // Backward compat alias

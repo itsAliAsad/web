@@ -5,10 +5,11 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Wallet, FileText, MessageSquare, ArrowRight, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Wallet, FileText, MessageSquare, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
 import MessageButton from "@/components/chat/MessageButton";
 import { Badge } from "@/components/ui/badge";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
+import { OffersSection } from "@/components/dashboard/OffersSection";
 import { formatStatus } from "@/lib/utils";
 
 export default function BuyerDashboard() {
@@ -206,41 +207,7 @@ export default function BuyerDashboard() {
 
             {/* Offers Waiting for Action */}
             {pendingOffers.length > 0 && (
-                <section className="mb-10">
-                    <div className="flex items-center gap-2 mb-6">
-                        <Sparkles className="h-5 w-5 text-amber-500" />
-                        <h2 className="text-2xl font-bold tracking-tight">Offers Waiting for You</h2>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {pendingOffers.map((offer) => (
-                            <Link key={offer._id} href={`/requests/${offer.ticketId || offer.requestId}`} className="block group">
-                                <Card className="glass-card border-none h-full transition-all duration-300 hover:shadow-lg overflow-hidden relative">
-                                    {/* Hover CTA */}
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out">
-                                        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium shadow-lg">
-                                            Review
-                                            <ArrowRight className="h-3.5 w-3.5" />
-                                        </span>
-                                    </div>
-
-                                    <CardContent className="p-5 transition-all duration-300 group-hover:pr-28">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-2xl font-bold text-foreground">
-                                                PKR {(offer.price || 0).toLocaleString()}
-                                            </span>
-                                            <Badge className="bg-amber-500/15 text-amber-700 border-none text-xs group-hover:opacity-0 transition-opacity">
-                                                Pending
-                                            </Badge>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground line-clamp-1">
-                                            For: {offer.requestTitle}
-                                        </p>
-                                    </CardContent>
-                                </Card>
-                            </Link>
-                        ))}
-                    </div>
-                </section>
+                <OffersSection offers={pendingOffers} />
             )}
 
             {/* Main Content: Recent Requests + Chart */}

@@ -155,9 +155,8 @@ export default function DealSidebar({ otherUserId }: DealSidebarProps) {
                                                     {/* Price */}
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-3xl font-bold tracking-tight bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                                                            ${deal.price}
+                                                            PKR {deal.price.toLocaleString()}
                                                         </span>
-                                                        <span className="text-sm text-muted-foreground">USD</span>
                                                     </div>
 
                                                     {/* Description */}

@@ -277,29 +277,65 @@ export const matchingRecentJobs = query({
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .unique();
 
-        if (!tutorProfile || offerings.length === 0) return [];
-
-        const allowedHelpTypes = tutorProfile.settings?.allowedHelpTypes || [];
+        const allowedHelpTypes = tutorProfile?.settings?.allowedHelpTypes || [];
         const courseIds = offerings.map(o => o.courseId);
 
-        // Get jobs from last hour
-        const oneHourAgo = Date.now() - (60 * 60 * 1000);
-
+        // Get all open tickets (no time restriction)
         const allOpenTickets = await ctx.db
             .query("tickets")
             .withIndex("by_status", (q) => q.eq("status", "open"))
-            .filter((q) => q.gte(q.field("_creationTime"), oneHourAgo))
             .order("desc")
             .collect();
 
-        // Filter by matching courses or help types
-        const matchingTickets = allOpenTickets.filter(ticket => {
-            const matchesCourse = ticket.courseId && courseIds.includes(ticket.courseId);
-            const matchesHelpType = allowedHelpTypes.length === 0 || allowedHelpTypes.includes(ticket.helpType);
-            return matchesCourse && matchesHelpType;
+        // Score and filter tickets
+        const scoredTickets = allOpenTickets
+            .map(ticket => {
+                let score = 0;
+
+                // Course matching logic
+                if (!ticket.courseId) {
+                    // General job (no courseId) - show to everyone at lower priority
+                    score += 0.7;
+                } else if (courseIds.length > 0 && courseIds.includes(ticket.courseId)) {
+                    // Direct course match
+                    score += 1.0;
+                } else if (courseIds.length === 0) {
+                    // Tutor has no offerings - show all jobs at base priority
+                    score += 0.5;
+                } else {
+                    // No match - filter out
+                    return null;
+                }
+
+                // Help type filter (if tutor has preferences set)
+                if (allowedHelpTypes.length > 0 && !allowedHelpTypes.includes(ticket.helpType)) {
+                    return null;
+                }
+
+                // Urgency boost
+                if (ticket.urgency === "high") score += 0.2;
+                else if (ticket.urgency === "medium") score += 0.1;
+
+                // Freshness boost (hours since creation)
+                const hoursOld = (Date.now() - ticket.createdAt) / 3600000;
+                if (hoursOld < 2) score += 0.15;
+                else if (hoursOld < 6) score += 0.10;
+                else if (hoursOld < 24) score += 0.05;
+
+                return { ...ticket, _score: score };
+            })
+            .filter((t): t is NonNullable<typeof t> => t !== null);
+
+        // Sort by score descending, then by creation time
+        scoredTickets.sort((a, b) => {
+            if (b._score !== a._score) return b._score - a._score;
+            return b.createdAt - a.createdAt;
         });
 
-        // Return top 3
-        return matchingTickets.slice(0, 3);
+        // Return top 10 (without the internal score field)
+        return scoredTickets.slice(0, 10).map(({ _score, ...ticket }) => ticket);
     },
 });
+
+// Alias for new naming (can be used in frontend)
+export const getRecommendedJobs = matchingRecentJobs;

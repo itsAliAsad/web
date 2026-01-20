@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const getMyProfile = query({
@@ -106,5 +106,31 @@ export const updateOnlineStatus = mutation({
                 acceptingRequests: args.status === "online",
             }
         });
+    },
+});
+
+export const checkIdleTutors = internalMutation({
+    handler: async (ctx) => {
+        const cutoff = Date.now() - 10 * 60 * 1000; // 10 minutes ago
+
+        const idleTutors = await ctx.db
+            .query("tutor_profiles")
+            .withIndex("by_user") // Ideally we'd have an index on isOnline + lastActiveAt, but this needs schema change or full scan.
+            // Since we can't easily query by isOnline without index, let's just filter in memory for now or iterate.
+            // Better: use filter.
+            .filter((q) => q.eq(q.field("isOnline"), true))
+            .collect();
+
+        for (const tutor of idleTutors) {
+            if (tutor.lastActiveAt < cutoff) {
+                await ctx.db.patch(tutor._id, {
+                    isOnline: false,
+                    settings: {
+                        ...tutor.settings,
+                        acceptingRequests: false, // Auto-mark as not accepting requests when idle
+                    },
+                });
+            }
+        }
     },
 });

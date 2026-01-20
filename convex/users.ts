@@ -72,7 +72,7 @@ export const store = mutation({
                 email_transactional: true,
                 push_messages: true,
             },
-            currency: "USD",
+            currency: "PKR",
             language: "en",
             theme: "system",
             marketingConsent: false,

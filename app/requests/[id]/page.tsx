@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
     Dialog,
     DialogContent,
@@ -22,7 +22,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ReportDialog from "@/components/trust/ReportDialog";
 import VerifiedBadge from "@/components/trust/VerifiedBadge";
-import { CheckCircle2, Clock, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Clock, ArrowLeft, Star } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 import MessageButton from "@/components/chat/MessageButton";
 import { formatStatus } from "@/lib/utils";
@@ -39,6 +46,7 @@ export default function RequestDetailsPage() {
     const [sellerComment, setSellerComment] = useState("");
     const [offerPrice, setOfferPrice] = useState("");
     const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+    const [sortBy, setSortBy] = useState<"best" | "price" | "rating" | "newest">("best");
 
     const request = useQuery(api.tickets.get, { id: ticketId });
     const offers = useQuery(api.offers.listByTicket, { ticketId });
@@ -55,6 +63,30 @@ export default function RequestDetailsPage() {
     const acceptedByCurrentSeller = offers?.find(
         (o) => o.status === "accepted" && currentUser && o.tutorId === currentUser._id
     );
+
+    // Sort offers based on selected sort option
+    const sortedOffers = useMemo(() => {
+        if (!offers) return [];
+        const sorted = [...offers];
+        switch (sortBy) {
+            case "price":
+                return sorted.sort((a, b) => a.price - b.price);
+            case "rating":
+                return sorted.sort((a, b) => (b.tutorReputation ?? 0) - (a.tutorReputation ?? 0));
+            case "newest":
+                return sorted.sort((a, b) => (b._creationTime ?? 0) - (a._creationTime ?? 0));
+            case "best":
+            default:
+                return sorted.sort((a, b) => (b.rankScore ?? 0) - (a.rankScore ?? 0));
+        }
+    }, [offers, sortBy]);
+
+    // Helper for match percentage badge styling
+    const getMatchBadgeStyle = (matchPercent: number) => {
+        if (matchPercent >= 80) return "bg-emerald-500/15 text-emerald-700";
+        if (matchPercent >= 60) return "bg-amber-500/15 text-amber-700";
+        return "bg-foreground/5 text-muted-foreground";
+    };
 
     const handleAccept = async (offerId: Id<"offers">) => {
         if (currentUser?.isBanned) return;
@@ -150,10 +182,10 @@ export default function RequestDetailsPage() {
         return (
             <div className="container mx-auto py-10 text-center">
                 <h1 className="text-2xl font-bold mb-4">Request not found</h1>
-                <Link href="/search">
+                <Link href={currentUser?.role === "student" ? "/dashboard/buyer" : "/search"}>
                     <Button variant="outline" className="rounded-full">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Jobs
+                        {currentUser?.role === "student" ? "Back to Dashboard" : "Back to Jobs"}
                     </Button>
                 </Link>
             </div>
@@ -172,9 +204,12 @@ export default function RequestDetailsPage() {
     return (
         <div className="container mx-auto py-10">
             {/* Back Link */}
-            <Link href="/search" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
+            <Link
+                href={isOwner ? "/dashboard/buyer" : "/search"}
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group"
+            >
                 <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                Back to Jobs
+                {isOwner ? "Back to Dashboard" : "Back to Jobs"}
             </Link>
 
             {/* Header - Premium Editorial */}
@@ -284,13 +319,24 @@ export default function RequestDetailsPage() {
                                     </div>
                                 )}
 
-                                <MessageButton
-                                    otherUserId={request.student._id}
-                                    className="w-full rounded-full"
-                                    variant="outline"
-                                >
-                                    Message Student
-                                </MessageButton>
+                                {acceptedByCurrentSeller ? (
+                                    <MessageButton
+                                        otherUserId={request.student._id}
+                                        className="w-full rounded-full"
+                                        variant="outline"
+                                    >
+                                        Message Student
+                                    </MessageButton>
+                                ) : (
+                                    <Button
+                                        className="w-full rounded-full opacity-50 cursor-not-allowed"
+                                        variant="outline"
+                                        disabled
+                                        title="You can only message the student once your offer is accepted"
+                                    >
+                                        Message Student
+                                    </Button>
+                                )}
                             </CardContent>
                         </Card>
                     )}
@@ -337,7 +383,7 @@ export default function RequestDetailsPage() {
                         </Card>
                     )}
 
-                    {isOwner ? (
+                    {isOwner && !acceptedOffer ? (
                         <>
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-bold">Offers</h2>
@@ -345,6 +391,22 @@ export default function RequestDetailsPage() {
                                     {offers.length} received
                                 </span>
                             </div>
+
+                            {/* Sorting dropdown - show when more than 3 offers */}
+                            {offers.length > 3 && (
+                                <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                                    <SelectTrigger className="w-full h-10 rounded-xl bg-foreground/5 border-none">
+                                        <SelectValue placeholder="Sort by..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="best">Best Match</SelectItem>
+                                        <SelectItem value="price">Lowest Price</SelectItem>
+                                        <SelectItem value="rating">Highest Rated</SelectItem>
+                                        <SelectItem value="newest">Newest First</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+
                             <div className="space-y-3">
                                 {offers.length === 0 ? (
                                     <Card className="glass-card border-none">
@@ -353,13 +415,52 @@ export default function RequestDetailsPage() {
                                         </CardContent>
                                     </Card>
                                 ) : (
-                                    offers.map((offer) => (
+                                    sortedOffers.map((offer) => (
                                         <Card
                                             key={offer._id}
                                             className={`glass-card border-none transition-all ${offer.status === 'accepted' ? 'shadow-glow-teal' : ''
                                                 }`}
                                         >
                                             <CardContent className="p-5">
+                                                {/* Top row: Reputation, Online Status, Match % */}
+                                                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                                    {/* Reputation */}
+                                                    {(offer.tutorReputation ?? 0) > 0 && (
+                                                        <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-md">
+                                                            <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                                                            <span className="text-sm font-medium text-amber-700">
+                                                                {offer.tutorReputation?.toFixed(1)}
+                                                            </span>
+                                                            {(offer.completedJobs ?? 0) > 0 && (
+                                                                <span className="text-xs text-amber-600/70">
+                                                                    ({offer.completedJobs} jobs)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Online indicator */}
+                                                    {offer.isOnline ? (
+                                                        <div className="flex items-center gap-1 text-xs text-emerald-600">
+                                                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                            Online
+                                                        </div>
+                                                    ) : offer.lastActiveAt && (Date.now() - offer.lastActiveAt) < 24 * 60 * 60 * 1000 ? (
+                                                        <div className="flex items-center gap-1 text-xs text-amber-600">
+                                                            <span className="h-2 w-2 rounded-full bg-amber-500" />
+                                                            Active today
+                                                        </div>
+                                                    ) : null}
+
+                                                    {/* Match percentage */}
+                                                    {(offer.matchPercent ?? 0) > 0 && (
+                                                        <Badge className={`${getMatchBadgeStyle(offer.matchPercent ?? 0)} border-none ml-auto`}>
+                                                            {offer.matchPercent}% Match
+                                                        </Badge>
+                                                    )}
+                                                </div>
+
+                                                {/* Price and status */}
                                                 <div className="flex items-center justify-between mb-3">
                                                     <span className="text-2xl font-bold text-foreground">
                                                         PKR {(offer.price || 0).toLocaleString()}
@@ -371,6 +472,8 @@ export default function RequestDetailsPage() {
                                                         </Badge>
                                                     )}
                                                 </div>
+
+                                                {/* Tutor name and verified badge */}
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-base font-semibold text-foreground">

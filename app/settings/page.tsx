@@ -169,7 +169,7 @@ export default function SettingsPage() {
     return (
         <div className="container mx-auto py-10">
             {/* Back Link */}
-            <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
+            <Link href={isTutor ? "/dashboard/seller" : "/dashboard/buyer"} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
                 <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                 Back to Dashboard
             </Link>

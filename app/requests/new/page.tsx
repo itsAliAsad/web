@@ -83,7 +83,7 @@ export default function CreateRequestPage() {
                 deadline: (formData.get("deadline") as string) || undefined,
             });
             toast.success("Request posted successfully!");
-            router.push("/dashboard");
+            router.push("/dashboard/buyer");
         } catch (error) {
             toast.error("Failed to post request");
             console.error(error);
@@ -95,7 +95,7 @@ export default function CreateRequestPage() {
     return (
         <div className="container mx-auto py-10 max-w-3xl">
             {/* Back Link */}
-            <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
+            <Link href="/dashboard/buyer" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group">
                 <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                 Back to Dashboard
             </Link>
@@ -144,8 +144,8 @@ export default function CreateRequestPage() {
                                 type="button"
                                 onClick={() => setTicketType("course")}
                                 className={`p-4 rounded-xl border-2 text-left transition-all ${ticketType === "course"
-                                        ? "border-foreground bg-foreground/5"
-                                        : "border-foreground/10 hover:border-foreground/20"
+                                    ? "border-foreground bg-foreground/5"
+                                    : "border-foreground/10 hover:border-foreground/20"
                                     }`}
                             >
                                 <BookOpen className={`h-5 w-5 mb-2 ${ticketType === "course" ? "text-foreground" : "text-muted-foreground"}`} />
@@ -156,8 +156,8 @@ export default function CreateRequestPage() {
                                 type="button"
                                 onClick={() => setTicketType("general")}
                                 className={`p-4 rounded-xl border-2 text-left transition-all ${ticketType === "general"
-                                        ? "border-foreground bg-foreground/5"
-                                        : "border-foreground/10 hover:border-foreground/20"
+                                    ? "border-foreground bg-foreground/5"
+                                    : "border-foreground/10 hover:border-foreground/20"
                                     }`}
                             >
                                 <Briefcase className={`h-5 w-5 mb-2 ${ticketType === "general" ? "text-foreground" : "text-muted-foreground"}`} />
@@ -203,8 +203,8 @@ export default function CreateRequestPage() {
                                     type="button"
                                     onClick={() => setHelpType(type.value)}
                                     className={`p-3 rounded-xl border-2 text-center transition-all ${helpType === type.value
-                                            ? "border-foreground bg-foreground text-background"
-                                            : "border-foreground/10 hover:border-foreground/20"
+                                        ? "border-foreground bg-foreground text-background"
+                                        : "border-foreground/10 hover:border-foreground/20"
                                         }`}
                                 >
                                     <type.icon className={`h-5 w-5 mx-auto mb-1.5 ${helpType === type.value ? "text-background" : "text-muted-foreground"}`} />

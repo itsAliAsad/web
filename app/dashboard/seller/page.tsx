@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import BidCard from "@/components/dashboard/BidCard";
 import { formatStatus } from "@/lib/utils";
+import { OnlinePresence } from "@/app/components/OnlinePresence";
 
 export default function SellerDashboard() {
     const user = useQuery(api.users.currentUser);
@@ -156,6 +157,7 @@ export default function SellerDashboard() {
 
     return (
         <div className="container mx-auto py-10 text-foreground">
+            <OnlinePresence />
             {/* Welcome Header */}
             <header className="mb-8">
                 <div className="flex items-start justify-between">
@@ -196,9 +198,9 @@ export default function SellerDashboard() {
             </header>
 
             {/* Top Section: Fresh Opportunities (Left) + KPIs (Right) */}
-            <section className="grid grid-cols-12 gap-6 mb-10">
+            <section className="grid grid-cols-12 gap-6 mb-10 items-start">
                 {/* Fresh Opportunities - Hero Card (8 cols) */}
-                <Card className="col-span-12 lg:col-span-8 glass-card border-none relative overflow-hidden">
+                <Card className="col-span-12 lg:col-span-8 glass-card border-none relative overflow-hidden flex flex-col" style={{ height: '536px' }}>
                     {/* Gradient accent border */}
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500/20 via-transparent to-teal-500/20 p-[1px]">
                         <div className="absolute inset-[1px] bg-white/80 dark:bg-[oklch(0.18_0.018_280)] rounded-2xl" />
@@ -212,12 +214,12 @@ export default function SellerDashboard() {
                                     Fresh Opportunities
                                 </CardTitle>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    New jobs matching your expertise in the last hour
+                                    Jobs recommended based on your expertise
                                 </p>
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="relative z-10">
+                    <CardContent className="relative z-10 flex-1 overflow-hidden flex flex-col">
                         {!freshJobs ? (
                             <div className="space-y-3">
                                 <Skeleton className="h-24 w-full rounded-xl" />
@@ -253,7 +255,7 @@ export default function SellerDashboard() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-3 overflow-y-auto flex-1 pr-2">
                                 {freshJobs.map((job) => (
                                     <Link
                                         key={job._id}
@@ -298,9 +300,9 @@ export default function SellerDashboard() {
                 </Card>
 
                 {/* KPI Stack (4 cols) */}
-                <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+                <div className="col-span-12 lg:col-span-4 flex flex-col gap-6" style={{ height: '536px' }}>
                     {/* Total Earnings - Tall Card */}
-                    <Card className="glass-card shadow-glow-amber border-none overflow-hidden hover:scale-[1.01] transition-transform">
+                    <Card className="glass-card shadow-glow-amber border-none overflow-hidden hover:scale-[1.01] transition-transform flex-1">
                         <CardContent className="p-8 relative flex flex-col justify-between">
                             {/* Ambient gradient */}
                             <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-gradient-to-br from-amber-400/20 via-orange-300/10 to-transparent blur-3xl" />
