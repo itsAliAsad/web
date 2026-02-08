@@ -56,8 +56,8 @@ export default function PublicProfilePage() {
                         {!isOwner && currentUser && (
                             <ReportDialog targetId={user._id} />
                         )}
-                        {isOwner && (
-                            <EditProfileDialog user={user} />
+                        {isOwner && currentUser && (
+                            <EditProfileDialog user={currentUser} />
                         )}
                     </div>
 
