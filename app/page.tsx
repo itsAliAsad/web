@@ -1,36 +1,42 @@
 "use client";
 
-import { SignInButton, useUser } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
-import { useRole } from "@/context/RoleContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import WaitlistHero from "@/components/waitlist/WaitlistHero";
+import WaitlistForm from "@/components/waitlist/WaitlistForm";
+import WaitlistCounter from "@/components/waitlist/WaitlistCounter";
+import FeaturesPreview from "@/components/waitlist/FeaturesPreview";
 
 export default function Home() {
-  const { isSignedIn } = useUser();
-  const { role } = useRole();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isSignedIn) {
-      if (role === "student") {
-        router.push("/dashboard/buyer");
-      } else {
-        router.push("/dashboard/seller");
-      }
-    }
-  }, [isSignedIn, role, router]);
-
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-8">Path</h1>
-      <p className="text-xl mb-8">P2P Academic Marketplace</p>
+    <main className="min-h-screen flex flex-col">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 md:py-20">
+        <div className="w-full max-w-4xl mx-auto space-y-12">
+          {/* Hero Section */}
+          <WaitlistHero />
 
-      {!isSignedIn && (
-        <SignInButton mode="modal">
-          <Button>Sign In with University Email</Button>
-        </SignInButton>
-      )}
+          {/* Waitlist Counter */}
+          <div className="flex justify-center">
+            <WaitlistCounter />
+          </div>
+
+          {/* Signup Form */}
+          <div className="max-w-md mx-auto w-full">
+            <WaitlistForm />
+          </div>
+
+          {/* Features Preview */}
+          <div className="pt-8">
+            <FeaturesPreview />
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="py-8 text-center text-sm text-muted-foreground border-t border-border/50">
+        <p>
+          © {new Date().getFullYear()} Path. Made with ❤️ for students, by students.
+        </p>
+      </footer>
     </main>
   );
 }
