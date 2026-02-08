@@ -57,7 +57,7 @@ export default function OnboardingWizard() {
         <div className="flex items-center justify-center min-h-screen bg-muted/20 p-4">
             <Card className="w-full max-w-lg glass-card">
                 <CardHeader>
-                    <CardTitle>Welcome to Path</CardTitle>
+                    <CardTitle>Welcome to Peer</CardTitle>
                     <CardDescription>Let's set up your profile in a few steps.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -65,7 +65,7 @@ export default function OnboardingWizard() {
 
                     {step === 1 && (
                         <div className="space-y-4">
-                            <h3 className="text-lg font-medium">How do you plan to use Path?</h3>
+                            <h3 className="text-lg font-medium">How do you plan to use Peer?</h3>
                             <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "tutor")}>
                                 <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                                     <RadioGroupItem value="student" id="student" />

@@ -34,7 +34,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-8 text-center text-sm text-muted-foreground border-t border-border/50">
         <p>
-          © {new Date().getFullYear()} Path. Made with ❤️ for students, by students.
+          © {new Date().getFullYear()} Peer. Made with ❤️ for students, by students.
         </p>
       </footer>
     </main>

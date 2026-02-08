@@ -32,7 +32,7 @@ export default function Navbar() {
             <div className="container flex h-16 items-center justify-between px-6">
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center space-x-2">
-                        <span className="text-xl font-bold">Path</span>
+                        <span className="text-xl font-bold">Peer</span>
                     </Link>
 
                     {/* Show full navigation only if launched or admin on internal pages */}

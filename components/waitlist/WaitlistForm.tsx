@@ -90,7 +90,7 @@ export default function WaitlistForm() {
                 </div>
                 <h3 className="text-2xl font-semibold mb-2">You&apos;re on the list! 🎉</h3>
                 <p className="text-muted-foreground">
-                    We&apos;ll send you an email when Path launches. <br />
+                    We&apos;ll send you an email when Peer launches. <br />
                     Get ready to connect with fellow students!
                 </p>
             </div>

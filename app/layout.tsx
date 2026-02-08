@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Path - P2P Academic Marketplace",
+  title: "Peer - P2P Academic Marketplace",
   description: "Connect with students for academic help",
 };
 
