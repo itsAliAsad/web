@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { requireUser } from "./utils";
 import { Id } from "./_generated/dataModel";
 
@@ -68,7 +68,7 @@ export const markAllRead = mutation({
     },
 });
 
-export const create = mutation({
+export const create = internalMutation({
     args: {
         userId: v.id("users"),
         type: v.union(
@@ -80,7 +80,7 @@ export const create = mutation({
         data: v.any(),
     },
     handler: async (ctx, args) => {
-        // Internal use mostly, but can be public if secured or used by other mutations via internalMutation
+        // Internal mutation - only callable from other backend functions
         // For MVP, we'll keep it simple and call it directly from other mutations or make it internal.
         // Since we can't easily call other mutations from mutations in Convex without `internalMutation` and `internal`,
         // we'll define it as a helper function or just duplicate logic?

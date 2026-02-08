@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin } from "./utils";
+import { requireAdmin, logAudit } from "./utils";
 
 export const getStats = query({
     args: {},
@@ -36,22 +36,40 @@ export const listUsers = query({
 });
 
 export const banUser = mutation({
-    args: { userId: v.id("users"), isBanned: v.boolean() },
+    args: { userId: v.id("users"), isBanned: v.boolean(), banReason: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        await requireAdmin(ctx);
-        await ctx.db.patch(args.userId, { isBanned: args.isBanned });
+        const admin = await requireAdmin(ctx);
+        await ctx.db.patch(args.userId, { 
+            isBanned: args.isBanned,
+            banReason: args.isBanned ? args.banReason : undefined,
+        });
+
+        // Audit log
+        await logAudit(ctx, {
+            action: args.isBanned ? "user_banned" : "user_unbanned",
+            actorId: admin._id,
+            targetId: args.userId,
+            targetType: "user",
+            details: { reason: args.banReason },
+        });
     },
 });
 
 export const createAnnouncement = mutation({
     args: { title: v.string(), content: v.string() },
     handler: async (ctx, args) => {
-        await requireAdmin(ctx);
-        await ctx.db.insert("announcements", {
+        const admin = await requireAdmin(ctx);
+        const announcementId = await ctx.db.insert("announcements", {
             title: args.title,
             content: args.content,
             isActive: true,
             createdAt: Date.now(),
+        });
+
+        await logAudit(ctx, {
+            action: "announcement_created",
+            actorId: admin._id,
+            details: { announcementId, title: args.title },
         });
     },
 });
@@ -79,8 +97,14 @@ export const listAnnouncements = query({
 export const setAnnouncementStatus = mutation({
     args: { id: v.id("announcements"), isActive: v.boolean() },
     handler: async (ctx, args) => {
-        await requireAdmin(ctx);
+        const admin = await requireAdmin(ctx);
         await ctx.db.patch(args.id, { isActive: args.isActive });
+
+        await logAudit(ctx, {
+            action: args.isActive ? "announcement_activated" : "announcement_deactivated",
+            actorId: admin._id,
+            details: { announcementId: args.id },
+        });
     },
 });
 
@@ -93,14 +117,50 @@ export const setVerification = mutation({
             verifiedBy: args.isVerified ? admin._id : undefined,
             verifiedAt: args.isVerified ? Date.now() : undefined,
         });
+
+        await logAudit(ctx, {
+            action: args.isVerified ? "user_verified" : "user_unverified",
+            actorId: admin._id,
+            targetId: args.userId,
+            targetType: "user",
+        });
     },
 });
 
 export const setAdmin = mutation({
     args: { userId: v.id("users"), isAdmin: v.boolean() },
     handler: async (ctx, args) => {
-        await requireAdmin(ctx);
+        const admin = await requireAdmin(ctx);
         await ctx.db.patch(args.userId, { isAdmin: args.isAdmin });
+
+        await logAudit(ctx, {
+            action: args.isAdmin ? "admin_granted" : "admin_revoked",
+            actorId: admin._id,
+            targetId: args.userId,
+            targetType: "user",
+        });
+    },
+});
+
+export const resolveReport = mutation({
+    args: { 
+        reportId: v.id("reports"), 
+        status: v.union(v.literal("resolved"), v.literal("dismissed")),
+        notes: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const admin = await requireAdmin(ctx);
+        const report = await ctx.db.get(args.reportId);
+        
+        await ctx.db.patch(args.reportId, { status: args.status });
+
+        await logAudit(ctx, {
+            action: `report_${args.status}`,
+            actorId: admin._id,
+            targetId: report?.targetId,
+            targetType: "report",
+            details: { reportId: args.reportId, notes: args.notes },
+        });
     },
 });
 

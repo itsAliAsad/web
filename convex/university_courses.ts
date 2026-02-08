@@ -1,7 +1,8 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-export const seed = mutation({
+// Internal only - use from Convex dashboard
+export const seed = internalMutation({
     handler: async (ctx) => {
         const courses = [
             { code: "CS 100", name: "Computational Problem Solving", department: "Computer Science" },

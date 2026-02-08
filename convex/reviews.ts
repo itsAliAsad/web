@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
-import { requireUser } from "./utils";
+import { requireUser, INPUT_LIMITS, validateLength } from "./utils";
 
 export const create = mutation({
     args: {
@@ -11,6 +11,15 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
+
+        // Input validation
+        if (args.rating < 1 || args.rating > 5) {
+            throw new Error("Rating must be between 1 and 5");
+        }
+        if (args.comment) {
+            validateLength(args.comment, INPUT_LIMITS.COMMENT_MAX, "Comment");
+        }
+
         const ticket = await ctx.db.get(args.ticketId);
         if (!ticket) throw new Error("Ticket not found");
 

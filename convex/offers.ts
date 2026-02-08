@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireUser } from "./utils";
+import { requireUser, RATE_LIMITS } from "./utils";
 
 export const create = mutation({
     args: {
@@ -9,6 +9,26 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
+
+        // Input validation
+        if (args.price <= 0) {
+            throw new Error("Price must be positive");
+        }
+        if (args.price > 1_000_000) {
+            throw new Error("Price exceeds maximum allowed");
+        }
+
+        // Rate limiting: check recent offers by this user
+        const { windowMs, maxRequests } = RATE_LIMITS.OFFER_CREATE;
+        const recentOffers = await ctx.db
+            .query("offers")
+            .withIndex("by_tutor", (q) => q.eq("tutorId", user._id))
+            .filter((q) => q.gt(q.field("_creationTime"), Date.now() - windowMs))
+            .collect();
+
+        if (recentOffers.length >= maxRequests) {
+            throw new Error("Rate limited: Too many offers. Please wait before submitting more.");
+        }
 
         // Check if ticket exists and is open
         const ticket = await ctx.db.get(args.ticketId);
@@ -60,10 +80,26 @@ export const listByTicket = query({
         const ticket = await ctx.db.get(args.ticketId);
         if (!ticket) return [];
 
-        const offers = await ctx.db
+        // Authorization: require authentication
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+            .unique();
+
+        if (!user) return [];
+
+        const allOffers = await ctx.db
             .query("offers")
             .withIndex("by_ticket", (q) => q.eq("ticketId", args.ticketId))
             .collect();
+
+        // Only ticket owner can see all offers; tutors see only their own
+        const offers = user._id === ticket.studentId
+            ? allOffers
+            : allOffers.filter(o => o.tutorId === user._id);
 
         // Find max price for price score calculation
         const maxPrice = Math.max(...offers.map(o => o.price), 1);

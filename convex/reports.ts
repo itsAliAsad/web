@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin, requireUser } from "./utils";
+import { requireAdmin, requireUser, RATE_LIMITS, INPUT_LIMITS, validateLength } from "./utils";
 
 export const create = mutation({
     args: {
@@ -11,6 +11,31 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
+
+        // Input validation
+        validateLength(args.reason, INPUT_LIMITS.REASON_MAX, "Reason");
+        if (args.description) {
+            validateLength(args.description, INPUT_LIMITS.DESCRIPTION_MAX, "Description");
+        }
+
+        // Prevent self-reporting
+        if (args.targetId === user._id) {
+            throw new Error("You cannot report yourself");
+        }
+
+        // Rate limiting
+        const { windowMs, maxRequests } = RATE_LIMITS.REPORT_CREATE;
+        const recentReports = await ctx.db
+            .query("reports")
+            .filter((q) => q.and(
+                q.eq(q.field("reporterId"), user._id),
+                q.gt(q.field("createdAt"), Date.now() - windowMs)
+            ))
+            .take(maxRequests + 1);
+
+        if (recentReports.length >= maxRequests) {
+            throw new Error("Rate limited: Too many reports. Please wait before submitting more.");
+        }
 
         await ctx.db.insert("reports", {
             reporterId: user._id,

@@ -1,9 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAdmin } from "./utils";
 
 export const listDevUsers = query({
     args: {},
     handler: async (ctx) => {
+        await requireAdmin(ctx);
         const users = await ctx.db.query("users").collect();
         return users.filter(u => !u.email.startsWith("tutor") && !u.email.startsWith("student")).map(u => ({ _id: u._id, name: u.name, email: u.email }));
     },
@@ -12,6 +14,8 @@ export const listDevUsers = query({
 export const transferTicket = mutation({
     args: { ticketId: v.id("tickets"), targetUserId: v.id("users") },
     handler: async (ctx, args) => {
+        await requireAdmin(ctx);
+        
         const ticket = await ctx.db.get(args.ticketId);
         if (!ticket) throw new Error("Ticket not found");
 
@@ -35,6 +39,8 @@ export const transferTicket = mutation({
 export const cleanupSeedData = mutation({
     args: { ticketId: v.id("tickets") },
     handler: async (ctx, args) => {
+        await requireAdmin(ctx);
+        
         // Create a dummy student for history
         let dummyStudent = await ctx.db.query("users").filter(q => q.eq(q.field("email"), "dummy_history@test.com")).first();
         if (!dummyStudent) {

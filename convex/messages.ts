@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-import { requireUser } from "./utils";
+import { requireUser, RATE_LIMITS, INPUT_LIMITS, validateLength } from "./utils";
 
 export const listConversations = query({
     args: {},
@@ -88,6 +88,23 @@ export const send = mutation({
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
+
+        // Input validation
+        validateLength(args.content, INPUT_LIMITS.MESSAGE_MAX, "Message");
+
+        // Rate limiting
+        const { windowMs, maxRequests } = RATE_LIMITS.MESSAGE_SEND;
+        const recentMessages = await ctx.db
+            .query("messages")
+            .filter((q) => q.and(
+                q.eq(q.field("senderId"), user._id),
+                q.gt(q.field("_creationTime"), Date.now() - windowMs)
+            ))
+            .take(maxRequests + 1);
+
+        if (recentMessages.length >= maxRequests) {
+            throw new Error("Rate limited: Too many messages. Please slow down.");
+        }
 
         let conversationId = args.conversationId;
 

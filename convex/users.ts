@@ -142,17 +142,27 @@ export const get = query({
         const ratingSum = user.ratingSum ?? 0;
         const ratingCount = user.ratingCount ?? 0;
 
+        // Return only public profile fields
         return {
-            ...user,
+            _id: user._id,
+            name: user.name,
+            image: user.image,
+            bio: user.bio,
+            university: user.university,
+            role: user.role,
+            isVerified: user.isVerified,
             reputation: ratingCount > 0 ? ratingSum / ratingCount : 0,
+            // Links are public for profile display
+            links: user.links,
         };
     },
 });
 
 export const setRole = mutation({
-    args: { role: v.union(v.literal("student"), v.literal("tutor"), v.literal("admin")) },
+    args: { role: v.union(v.literal("student"), v.literal("tutor")) },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
+        // Note: Admin role can only be set via admin.setAdmin()
         await ctx.db.patch(user._id, { role: args.role });
         return args.role;
     },

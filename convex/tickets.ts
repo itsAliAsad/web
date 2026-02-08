@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireUser } from "./utils";
+import { requireUser, RATE_LIMITS, INPUT_LIMITS, validateLength } from "./utils";
 
 export const create = mutation({
     args: {
@@ -16,6 +16,28 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
+
+        // Input validation
+        validateLength(args.title, INPUT_LIMITS.TITLE_MAX, "Title");
+        validateLength(args.description, INPUT_LIMITS.DESCRIPTION_MAX, "Description");
+        if (args.customCategory) {
+            validateLength(args.customCategory, 100, "Category");
+        }
+        if (args.budget !== undefined && (args.budget < 0 || args.budget > 1_000_000)) {
+            throw new Error("Budget must be between 0 and 1,000,000");
+        }
+
+        // Rate limiting
+        const { windowMs, maxRequests } = RATE_LIMITS.TICKET_CREATE;
+        const recentTickets = await ctx.db
+            .query("tickets")
+            .withIndex("by_student", (q) => q.eq("studentId", user._id))
+            .filter((q) => q.gt(q.field("_creationTime"), Date.now() - windowMs))
+            .collect();
+
+        if (recentTickets.length >= maxRequests) {
+            throw new Error("Rate limited: Too many requests. Please wait before creating more.");
+        }
 
         // Validate: either courseId or customCategory must be provided
         if (!args.courseId && !args.customCategory) {

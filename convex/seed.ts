@@ -1,7 +1,8 @@
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
-export const seedJobWithOffers = mutation({
+// Internal only - use from Convex dashboard for testing
+export const seedJobWithOffers = internalMutation({
     args: {},
     handler: async (ctx) => {
         // 1. Create a student

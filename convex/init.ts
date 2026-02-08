@@ -1,6 +1,7 @@
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
-export const seed = mutation({
+// Internal only - use from Convex dashboard
+export const seed = internalMutation({
     handler: async (ctx) => {
         // 1. Seed courses
         // We can call the other mutation if we want, but better to just do logic here or call it via ctx.runMutation if internal?
