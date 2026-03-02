@@ -43,6 +43,7 @@ export default function NotificationDropdown() {
 
         // Navigate based on type
         const ticketId = notification.data?.ticketId || notification.data?.requestId;
+        const crashCourseId = notification.data?.crashCourseId;
         switch (notification.type) {
             case "offer_received":
                 if (ticketId) {
@@ -64,6 +65,18 @@ export default function NotificationDropdown() {
                     router.push(`/messages?conversation=${notification.data.conversationId}`);
                 } else {
                     router.push(`/messages`);
+                }
+                break;
+            case "crash_course_new_application":
+            case "crash_course_voting_started":
+            case "crash_course_tutor_selected":
+            case "crash_course_confirmed":
+            case "crash_course_starting_soon":
+            case "crash_course_cancelled":
+                if (crashCourseId) {
+                    router.push(`/crash-courses/${crashCourseId}`);
+                } else {
+                    router.push(`/crash-courses`);
                 }
                 break;
         }
@@ -121,6 +134,12 @@ export default function NotificationDropdown() {
                                             ` from ${(notification as any).sender.name}`}
                                     </>
                                 )}
+                                {notification.type === "crash_course_new_application" && "New Tutor Application"}
+                                {notification.type === "crash_course_voting_started" && "Voting Started"}
+                                {notification.type === "crash_course_tutor_selected" && "Tutor Selected"}
+                                {notification.type === "crash_course_confirmed" && "Crash Course Confirmed"}
+                                {notification.type === "crash_course_starting_soon" && "Crash Course Starting Soon"}
+                                {notification.type === "crash_course_cancelled" && "Crash Course Cancelled"}
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 {new Date(notification.createdAt).toLocaleDateString()}{" "}

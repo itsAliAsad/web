@@ -84,6 +84,12 @@ export function CommandSearch() {
                         <CommandItem onSelect={() => runCommand(() => router.push("/profile/me"))}>
                             <span>My Profile</span>
                         </CommandItem>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crash-courses"))}>
+                            <span>Crash Courses</span>
+                        </CommandItem>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crash-courses/new"))}>
+                            <span>Create Crash Course</span>
+                        </CommandItem>
                     </CommandGroup>
                     <CommandSeparator />
                     <CommandGroup heading="Search">

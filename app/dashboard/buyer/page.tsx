@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Wallet, FileText, MessageSquare, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Wallet, FileText, MessageSquare, ArrowRight, TrendingUp, TrendingDown, GraduationCap } from "lucide-react";
 import MessageButton from "@/components/chat/MessageButton";
 import { Badge } from "@/components/ui/badge";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
@@ -16,6 +16,7 @@ export default function BuyerDashboard() {
     const { isAuthenticated } = useConvexAuth();
     const requests = useQuery(api.tickets.listMyRequests, isAuthenticated ? {} : "skip");
     const offers = useQuery(api.offers.listOffersForBuyer, isAuthenticated ? {} : "skip");
+    const upcomingCrashCourses = useQuery(api.crash_courses.getUpcoming, isAuthenticated ? {} : "skip");
 
     if (requests === undefined || offers === undefined) {
         return (
@@ -208,6 +209,58 @@ export default function BuyerDashboard() {
             {/* Offers Waiting for Action */}
             {pendingOffers.length > 0 && (
                 <OffersSection offers={pendingOffers} />
+            )}
+
+            {/* Upcoming Crash Courses */}
+            {upcomingCrashCourses && upcomingCrashCourses.length > 0 && (
+                <section className="mb-10">
+                    <Card className="glass-card border-none">
+                        <CardHeader className="pb-4">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                                    <GraduationCap className="h-5 w-5 text-violet-600" />
+                                    Upcoming Crash Courses
+                                </CardTitle>
+                                <Link href="/crash-courses">
+                                    <Button variant="ghost" size="sm" className="rounded-full font-semibold">
+                                        View All <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </Link>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {upcomingCrashCourses.slice(0, 3).map((cc: any) => (
+                                    <Link key={cc._id} href={`/crash-courses/${cc._id}`} className="block group">
+                                        <div className="flex items-center gap-4 p-4 rounded-xl bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-transparent hover:border-border/50 transition-all duration-300 hover:shadow-md">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h4 className="font-semibold text-foreground group-hover:text-violet-700 transition-colors truncate">
+                                                        {cc.title}
+                                                    </h4>
+                                                    <Badge className="text-xs bg-violet-500/15 text-violet-700 border-none">
+                                                        {cc.status === "confirmed" ? "Confirmed" : cc.status === "in_progress" ? "In Progress" : cc.status}
+                                                    </Badge>
+                                                </div>
+                                                {cc.scheduledAt && (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        📅 {new Date(cc.scheduledAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {cc.pricePerStudent && (
+                                                <span className="text-lg font-bold text-foreground shrink-0">
+                                                    PKR {cc.pricePerStudent.toLocaleString()}
+                                                </span>
+                                            )}
+                                            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all shrink-0" />
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </section>
             )}
 
             {/* Main Content: Recent Requests + Chart */}

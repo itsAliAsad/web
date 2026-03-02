@@ -135,7 +135,131 @@ export default defineSchema({
         }),
 
     // ==========================================
-    // 6. STUDY GROUPS (New Feature)
+    // 6. CRASH COURSES
+    // ==========================================
+    crash_courses: defineTable({
+        creatorId: v.id("users"),
+        origin: v.union(v.literal("demand"), v.literal("supply")),
+
+        // Course linkage
+        courseId: v.id("university_courses"),
+        department: v.optional(v.string()),
+
+        // Content
+        title: v.string(),
+        description: v.string(),
+        topics: v.array(v.string()),
+        examType: v.union(
+            v.literal("quiz"),
+            v.literal("midterm"),
+            v.literal("final"),
+            v.literal("other")
+        ),
+
+        // Scheduling (SUPPLY: required at creation. DEMAND: set after tutor selection)
+        scheduledAt: v.optional(v.number()),
+        duration: v.optional(v.number()), // minutes
+        location: v.optional(v.string()),
+
+        // Demand-only: student preferences (guidance for tutor applications)
+        preferredDateRange: v.optional(v.string()),
+        preferredDuration: v.optional(v.number()),
+        budgetPerStudent: v.optional(v.number()),
+
+        // Pricing (SUPPLY: required at creation. DEMAND: set from winning quote)
+        pricePerStudent: v.optional(v.number()),
+
+        // Enrollment
+        maxEnrollment: v.number(),
+        minEnrollment: v.optional(v.number()),
+        currentEnrollment: v.number(),
+
+        // Tutor selection
+        selectedTutorId: v.optional(v.id("users")),
+        votingDeadline: v.optional(v.number()),
+        confirmationDeadline: v.optional(v.number()),
+
+        // Status
+        status: v.union(
+            v.literal("open"),          // supply: accepting enrollments
+            v.literal("requesting"),    // demand: collecting interest + tutor applications
+            v.literal("voting"),        // demand: students voting on applications
+            v.literal("confirming"),    // demand: tutor selected, students confirming
+            v.literal("pending_tutor_review"), // demand: too few confirmations, tutor decides
+            v.literal("confirmed"),     // locked in
+            v.literal("in_progress"),
+            v.literal("completed"),
+            v.literal("cancelled")
+        ),
+
+        createdAt: v.number(),
+        deletedAt: v.optional(v.number()),
+    })
+        .index("by_status", ["status"])
+        .index("by_course", ["courseId"])
+        .index("by_department", ["department", "status"])
+        .index("by_creator", ["creatorId"])
+        .index("by_tutor", ["selectedTutorId"])
+        .searchIndex("search_crash_courses", {
+            searchField: "title",
+            filterFields: ["department", "examType", "status"],
+        }),
+
+    crash_course_enrollments: defineTable({
+        crashCourseId: v.id("crash_courses"),
+        studentId: v.id("users"),
+        status: v.union(
+            v.literal("interested"),
+            v.literal("pending_confirmation"),
+            v.literal("enrolled"),
+            v.literal("withdrawn")
+        ),
+        createdAt: v.number(),
+    })
+        .index("by_crash_course", ["crashCourseId"])
+        .index("by_student", ["studentId"])
+        .index("by_crash_course_and_student", ["crashCourseId", "studentId"]),
+
+    crash_course_applications: defineTable({
+        crashCourseId: v.id("crash_courses"),
+        tutorId: v.id("users"),
+
+        // The Quote
+        pitch: v.string(),
+        proposedPrice: v.number(),
+        proposedDate: v.number(),
+        proposedDuration: v.number(), // minutes
+        proposedLocation: v.optional(v.string()),
+        topicsCovered: v.array(v.string()),
+
+        // Enrollment terms (tutor defines the economics)
+        proposedMinEnrollment: v.optional(v.number()), // min students needed to run
+        proposedMaxEnrollment: v.optional(v.number()), // max students the tutor can handle
+
+        // Voting
+        voteCount: v.number(),
+        status: v.union(
+            v.literal("pending"),
+            v.literal("selected"),
+            v.literal("rejected")
+        ),
+        createdAt: v.number(),
+    })
+        .index("by_crash_course", ["crashCourseId"])
+        .index("by_tutor", ["tutorId"])
+        .index("by_crash_course_and_tutor", ["crashCourseId", "tutorId"]),
+
+    crash_course_votes: defineTable({
+        applicationId: v.id("crash_course_applications"),
+        crashCourseId: v.id("crash_courses"),
+        studentId: v.id("users"),
+        createdAt: v.number(),
+    })
+        .index("by_application", ["applicationId"])
+        .index("by_crash_course_and_student", ["crashCourseId", "studentId"]),
+
+    // ==========================================
+    // 7. STUDY GROUPS
     // ==========================================
     study_groups: defineTable({
         hostId: v.id("users"),
@@ -171,10 +295,15 @@ export default defineSchema({
     reviews: defineTable({
         reviewerId: v.id("users"),
         revieweeId: v.id("users"),
-        ticketId: v.id("tickets"), // Updated from requestId
+        ticketId: v.optional(v.id("tickets")), // Optional: for ticket reviews
+        crashCourseId: v.optional(v.id("crash_courses")), // Optional: for crash course reviews
         rating: v.number(), // 1-5
         comment: v.optional(v.string()),
-        type: v.union(v.literal("student_to_tutor"), v.literal("tutor_to_student")), // Updated terminology
+        type: v.union(
+            v.literal("student_to_tutor"),
+            v.literal("tutor_to_student"),
+            v.literal("crash_course_review") // Student reviews crash course tutor
+        ),
     }).index("by_reviewee", ["revieweeId"]),
 
     conversations: defineTable({
@@ -212,7 +341,15 @@ export default defineSchema({
             v.literal("offer_accepted"),
             v.literal("ticket_resolved"),
             v.literal("request_completed"), // Legacy: backward compat
-            v.literal("new_message")
+            v.literal("new_message"),
+            // Crash Course notifications
+            v.literal("crash_course_application"),
+            v.literal("crash_course_vote_open"),
+            v.literal("crash_course_selected"),
+            v.literal("crash_course_confirmed"),
+            v.literal("crash_course_reminder"),
+            v.literal("crash_course_cancelled"),
+            v.literal("crash_course_low_enrollment")
         ),
         data: v.any(),
         isRead: v.boolean(),

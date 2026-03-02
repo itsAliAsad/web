@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as crash_courses from "../crash_courses.js";
 import type * as crons from "../crons.js";
 import type * as debug from "../debug.js";
 import type * as init from "../init.js";
@@ -38,6 +39,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  crash_courses: typeof crash_courses;
   crons: typeof crons;
   debug: typeof debug;
   init: typeof init;

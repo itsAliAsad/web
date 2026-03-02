@@ -9,7 +9,7 @@ import PageTransition from "@/components/ui/PageTransition";
 import { toast } from "sonner";
 
 // Set to true when ready to launch and allow all routes
-const IS_LAUNCHED = false;
+const IS_LAUNCHED = true;
 
 // Routes that are allowed before launch
 // Note: Admin users can access all routes

@@ -14,7 +14,7 @@ import { api } from "@/convex/_generated/api";
 import { CommandSearch } from "@/components/search/CommandSearch";
 
 // Set this to true when you want to show the full navigation (after launch)
-const IS_LAUNCHED = false;
+const IS_LAUNCHED = true;
 
 export default function Navbar() {
     const { role } = useRole();
@@ -81,6 +81,15 @@ export default function Navbar() {
                                     </Link>
                                 </>
                             )}
+                            <Link
+                                href="/crash-courses"
+                                className={cn(
+                                    "transition-colors hover:text-foreground/80",
+                                    pathname.startsWith("/crash-courses") ? "text-foreground" : "text-foreground/60"
+                                )}
+                            >
+                                Crash Courses
+                            </Link>
                             <Link
                                 href="/messages"
                                 className={cn(

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { Search, TrendingUp, TrendingDown, ArrowRight, Sparkles, Zap, Target, Briefcase, ChevronDown, Clock, Send } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, ArrowRight, Sparkles, Zap, Target, Briefcase, ChevronDown, Clock, Send, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EarningsChart } from "@/components/dashboard/EarningsChart";
@@ -25,6 +25,7 @@ export default function SellerDashboard() {
     const requests = useQuery(api.tickets.listOpen, {});
     const myOffers = useQuery(api.offers.listMyOffers, {});
     const freshJobs = useQuery(api.tickets.matchingRecentJobs);
+    const upcomingCrashCourses = useQuery(api.crash_courses.getUpcoming);
     const updateStatus = useMutation(api.tutor_profiles.updateOnlineStatus);
 
     const [statusLoading, setStatusLoading] = useState(false);
@@ -472,6 +473,58 @@ export default function SellerDashboard() {
                     <EarningsChart data={chartData} trend={earningsTrend} />
                 </div>
             </section >
+
+            {/* Upcoming Crash Courses */}
+            {upcomingCrashCourses && upcomingCrashCourses.length > 0 && (
+                <section className="mt-10">
+                    <Card className="glass-card border-none">
+                        <CardHeader className="pb-4">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                                    <GraduationCap className="h-5 w-5 text-violet-600" />
+                                    My Crash Courses
+                                </CardTitle>
+                                <Link href="/crash-courses">
+                                    <Button variant="ghost" size="sm" className="rounded-full font-semibold">
+                                        View All <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </Link>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {upcomingCrashCourses.slice(0, 3).map((cc: any) => (
+                                    <Link key={cc._id} href={`/crash-courses/${cc._id}`} className="block group">
+                                        <div className="flex items-center gap-4 p-4 rounded-xl bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-transparent hover:border-border/50 transition-all duration-300 hover:shadow-md">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h4 className="font-semibold text-foreground group-hover:text-violet-700 transition-colors truncate">
+                                                        {cc.title}
+                                                    </h4>
+                                                    <Badge className="text-xs bg-violet-500/15 text-violet-700 border-none">
+                                                        {cc.status === "confirmed" ? "Confirmed" : cc.status === "in_progress" ? "In Progress" : cc.status}
+                                                    </Badge>
+                                                </div>
+                                                {cc.scheduledAt && (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        📅 {new Date(cc.scheduledAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <span className="text-sm text-muted-foreground">
+                                                    {cc.currentEnrollment}/{cc.maxEnrollment} enrolled
+                                                </span>
+                                            </div>
+                                            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all shrink-0" />
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </section>
+            )}
         </div >
     );
 }
