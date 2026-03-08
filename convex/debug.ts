@@ -50,7 +50,10 @@ export const cleanupSeedData = mutation({
                 tokenIdentifier: "dummy_history_" + Date.now(),
                 reputation: 5,
                 role: "student",
-                isVerified: false,
+                verificationTier: "none" as const,
+                ratingSum: 0,
+                ratingCount: 0,
+                marketingConsent: false,
             });
             dummyStudent = await ctx.db.get(dummyId);
         }
@@ -83,4 +86,28 @@ export const cleanupSeedData = mutation({
 
         return `Reassigned ${dummyTickets.length} dummy tickets to Dummy Student.`;
     }
+});
+
+export const clearAll = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const tables = [
+            "audit_logs", "announcements", "courses", "portfolio_items", "reports",
+            "notifications", "messages", "conversations", "reviews", "offers",
+            "study_groups", "tutor_credentials", "crash_course_votes",
+            "crash_course_applications", "crash_course_enrollments", "crash_courses",
+            "tickets", "tutor_offerings", "university_courses", "tutor_profiles",
+            "users", "universities",
+        ] as const;
+
+        let total = 0;
+        for (const table of tables) {
+            const docs = await ctx.db.query(table).collect();
+            for (const doc of docs) {
+                await ctx.db.delete(doc._id);
+            }
+            total += docs.length;
+        }
+        return `Deleted ${total} documents across all tables.`;
+    },
 });

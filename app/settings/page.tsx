@@ -13,12 +13,22 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useRole } from "@/context/RoleContext";
-import { User, Bell, Shield, GraduationCap, BookOpen, X, ArrowLeft, Check } from "lucide-react";
+import { User, Bell, Shield, GraduationCap, BookOpen, X, ArrowLeft, Check, Mail, Phone, ShieldCheck } from "lucide-react";
 import { CourseSelector } from "@/components/CourseSelector";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 
-const HELP_TYPES = ["Debugging", "Concept Explanation", "Exam Prep", "Code Review", "Project Help", "Mentorship"];
+const HELP_TYPES: { value: string; label: string }[] = [
+    { value: "debugging",      label: "Debugging" },
+    { value: "concept",        label: "Concept Explanation" },
+    { value: "exam_prep",      label: "Exam Prep" },
+    { value: "review",         label: "Code Review" },
+    { value: "project",        label: "Project Help" },
+    { value: "mentorship",     label: "Mentorship" },
+    { value: "assignment",     label: "Assignment Help" },
+    { value: "interview_prep", label: "Interview Prep" },
+    { value: "other",          label: "Other" },
+];
 
 const NAV_ITEMS = [
     { id: "general", label: "General", icon: User },
@@ -52,9 +62,13 @@ export default function SettingsPage() {
     const [acceptingRequests, setAcceptingRequests] = useState(true);
     const [selectedHelpTypes, setSelectedHelpTypes] = useState<string[]>([]);
 
+    // Tutor Contact
+    const [personalEmail, setPersonalEmail] = useState("");
+    const [whatsappNumber, setWhatsappNumber] = useState("");
+
     // Course offering
     const [selectedCourse, setSelectedCourse] = useState<Id<"university_courses"> | null>(null);
-    const [offeringLevel, setOfferingLevel] = useState("Intermediate");
+    const [offeringLevel, setOfferingLevel] = useState("intermediate");
     const [editingOffering, setEditingOffering] = useState<string | null>(null);
 
     const isTutor = role === "tutor" || user?.role === "tutor";
@@ -64,6 +78,8 @@ export default function SettingsPage() {
             setCurrency(user.currency || "PKR");
             setLanguage(user.language || "en");
             setTheme(user.theme || "system");
+            setPersonalEmail((user as any).personalEmail || "");
+            setWhatsappNumber((user as any).whatsappNumber || "");
         }
     }, [user]);
 
@@ -114,11 +130,20 @@ export default function SettingsPage() {
 
     const handleSaveTutor = async () => {
         try {
-            await updateTutorProfile({
-                bio: tutorBio,
-                minRate,
-                allowedHelpTypes: selectedHelpTypes,
-            });
+            // Save contact details to user record + tutor profile in parallel
+            await Promise.all([
+                update({
+                    updates: {
+                        personalEmail: personalEmail.trim() || undefined,
+                        whatsappNumber: whatsappNumber.trim() || undefined,
+                    },
+                }),
+                updateTutorProfile({
+                    bio: tutorBio,
+                    minRate,
+                    allowedHelpTypes: selectedHelpTypes as any,
+                }),
+            ]);
             toast.success("Profile saved");
         } catch (error) {
             toast.error("Failed to save");
@@ -137,7 +162,7 @@ export default function SettingsPage() {
             return;
         }
         try {
-            await addOffering({ courseId: selectedCourse, level: offeringLevel });
+            await addOffering({ courseId: selectedCourse, category: "university", level: offeringLevel as any });
             toast.success("Course added");
             setSelectedCourse(null);
         } catch (error: any) {
@@ -147,7 +172,7 @@ export default function SettingsPage() {
 
     const handleUpdateOfferingLevel = async (offeringId: Id<"tutor_offerings">, newLevel: string) => {
         try {
-            await updateOffering({ offeringId, level: newLevel });
+            await updateOffering({ offeringId, level: newLevel as any });
             toast.success("Level updated");
             setEditingOffering(null);
         } catch (error) {
@@ -339,7 +364,7 @@ export default function SettingsPage() {
                                             <p className="text-sm text-muted-foreground">I agree to receive marketing communications.</p>
                                         </div>
                                         <Switch
-                                            checked={user.marketingConsent ?? false}
+                                            checked={user.marketingConsent}
                                             onCheckedChange={(v) => handleToggle("marketingConsent", v)}
                                         />
                                     </div>
@@ -350,23 +375,52 @@ export default function SettingsPage() {
                         {/* Tutor Profile */}
                         {activeSection === "tutor" && isTutor && (
                             <>
+                                {/* Contact Details */}
                                 <Card className="glass-card border-none">
                                     <CardHeader>
-                                        <CardTitle className="text-2xl font-bold">Tutor Profile</CardTitle>
-                                        <CardDescription>Configure your tutoring preferences.</CardDescription>
+                                        <CardTitle className="text-2xl font-bold">Contact Details</CardTitle>
+                                        <CardDescription>Only visible to the Peer team — never shown publicly.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="space-y-6">
-                                        <div className="flex items-center justify-between py-3">
-                                            <div className="space-y-0.5">
-                                                <Label className="text-base">Accepting Requests</Label>
-                                                <p className="text-sm text-muted-foreground">Toggle to accept new requests.</p>
+                                    <CardContent className="space-y-5">
+                                        <div className="space-y-2">
+                                            <Label className="text-base">Personal Email</Label>
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    type="email"
+                                                    placeholder="you@gmail.com"
+                                                    value={personalEmail}
+                                                    onChange={(e) => setPersonalEmail(e.target.value)}
+                                                    className="h-12 rounded-xl pl-10"
+                                                />
                                             </div>
-                                            <Switch
-                                                checked={acceptingRequests}
-                                                onCheckedChange={(v) => handleToggle("acceptingRequests", v)}
-                                            />
+                                            <p className="text-xs text-muted-foreground">We&apos;ll contact you here for admin matters.</p>
                                         </div>
 
+                                        <div className="space-y-2">
+                                            <Label className="text-base">WhatsApp Number</Label>
+                                            <div className="relative">
+                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    type="tel"
+                                                    placeholder="+92 300 1234567"
+                                                    value={whatsappNumber}
+                                                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                                                    className="h-12 rounded-xl pl-10"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">Our primary way of reaching out to you.</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* About & Expertise */}
+                                <Card className="glass-card border-none">
+                                    <CardHeader>
+                                        <CardTitle className="text-2xl font-bold">About & Expertise</CardTitle>
+                                        <CardDescription>Tell students what makes you a great tutor.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
                                         <div className="space-y-2">
                                             <Label className="text-base">Bio</Label>
                                             <Textarea
@@ -374,6 +428,46 @@ export default function SettingsPage() {
                                                 onChange={(e) => setTutorBio(e.target.value)}
                                                 placeholder="Tell students about your experience..."
                                                 className="min-h-[120px] rounded-xl"
+                                                maxLength={1000}
+                                            />
+                                            <p className="text-xs text-muted-foreground text-right">{tutorBio.length}/1000</p>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <Label className="text-base">Help Types I Offer</Label>
+                                            <p className="text-sm text-muted-foreground">Select types of help you can provide.</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {HELP_TYPES.map((item) => (
+                                                    <Badge
+                                                        key={item.value}
+                                                        variant={selectedHelpTypes.includes(item.value) ? "default" : "outline"}
+                                                        className="cursor-pointer hover:opacity-80 px-3 py-1.5"
+                                                        onClick={() => toggleHelpType(item.value)}
+                                                    >
+                                                        {item.label}
+                                                        {selectedHelpTypes.includes(item.value) && <X className="ml-1 h-3 w-3" />}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Pricing & Availability */}
+                                <Card className="glass-card border-none">
+                                    <CardHeader>
+                                        <CardTitle className="text-2xl font-bold">Pricing & Availability</CardTitle>
+                                        <CardDescription>Control when you&apos;re available and your rates.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
+                                        <div className="flex items-center justify-between py-3">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base">Accepting Requests</Label>
+                                                <p className="text-sm text-muted-foreground">Toggle to accept new student requests.</p>
+                                            </div>
+                                            <Switch
+                                                checked={acceptingRequests}
+                                                onCheckedChange={(v) => handleToggle("acceptingRequests", v)}
                                             />
                                         </div>
 
@@ -387,30 +481,13 @@ export default function SettingsPage() {
                                                 className="h-12 rounded-xl"
                                             />
                                         </div>
-
-                                        <div className="space-y-3">
-                                            <Label className="text-base">Help Types I Offer</Label>
-                                            <p className="text-sm text-muted-foreground">Select types of help you can provide.</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {HELP_TYPES.map((type) => (
-                                                    <Badge
-                                                        key={type}
-                                                        variant={selectedHelpTypes.includes(type) ? "default" : "outline"}
-                                                        className="cursor-pointer hover:opacity-80 px-3 py-1.5"
-                                                        onClick={() => toggleHelpType(type)}
-                                                    >
-                                                        {type}
-                                                        {selectedHelpTypes.includes(type) && <X className="ml-1 h-3 w-3" />}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <Button onClick={handleSaveTutor} className="rounded-full h-11">
-                                            Save Profile
-                                        </Button>
                                     </CardContent>
                                 </Card>
+
+                                {/* Save Button */}
+                                <Button onClick={handleSaveTutor} className="rounded-full h-11 w-full">
+                                    Save All Changes
+                                </Button>
 
                                 {/* Live Preview */}
                                 <Card className="glass-card border-none bg-amber-500/5">
@@ -425,23 +502,31 @@ export default function SettingsPage() {
                                                     <h3 className="text-lg font-bold text-foreground">{user.name || "Your Name"}</h3>
                                                     <p className="text-sm text-muted-foreground">PKR {minRate}/hour minimum</p>
                                                 </div>
-                                                {acceptingRequests ? (
-                                                    <Badge className="bg-emerald-500/15 text-emerald-700 border-none">
-                                                        <Check className="h-3 w-3 mr-1" />
-                                                        Available
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="outline">Unavailable</Badge>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    {personalEmail && whatsappNumber && (
+                                                        <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-none">
+                                                            <ShieldCheck className="h-3 w-3 mr-1" />
+                                                            Contact Verified
+                                                        </Badge>
+                                                    )}
+                                                    {acceptingRequests ? (
+                                                        <Badge className="bg-emerald-500/15 text-emerald-700 border-none">
+                                                            <Check className="h-3 w-3 mr-1" />
+                                                            Available
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline">Unavailable</Badge>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p className="text-sm text-foreground/80 mb-4">
                                                 {tutorBio || "No bio yet. Add one above to see it here!"}
                                             </p>
                                             {selectedHelpTypes.length > 0 && (
                                                 <div className="flex flex-wrap gap-1.5">
-                                                    {selectedHelpTypes.map(type => (
-                                                        <Badge key={type} variant="secondary" className="text-xs">
-                                                            {type}
+                                                    {selectedHelpTypes.map(value => (
+                                                        <Badge key={value} variant="secondary" className="text-xs">
+                                                            {HELP_TYPES.find(h => h.value === value)?.label ?? value}
                                                         </Badge>
                                                     ))}
                                                 </div>
@@ -475,9 +560,9 @@ export default function SettingsPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Beginner">Beginner</SelectItem>
-                                                    <SelectItem value="Intermediate">Intermediate</SelectItem>
-                                                    <SelectItem value="Advanced">Advanced</SelectItem>
+                                                    <SelectItem value="beginner">Beginner</SelectItem>
+                                                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                                                    <SelectItem value="advanced">Advanced</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <Button onClick={handleAddOffering} className="h-12 rounded-xl">Add</Button>

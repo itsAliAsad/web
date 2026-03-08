@@ -28,9 +28,9 @@ import { Plus, X, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 
 const LEVELS = [
-    { value: "Beginner", label: "Beginner" },
-    { value: "Intermediate", label: "Intermediate" },
-    { value: "Advanced", label: "Advanced" },
+    { value: "beginner",     label: "Beginner" },
+    { value: "intermediate", label: "Intermediate" },
+    { value: "advanced",     label: "Advanced" },
 ];
 
 interface ExpertiseSectionProps {
@@ -46,7 +46,7 @@ export default function ExpertiseSection({ userId, isOwner }: ExpertiseSectionPr
     const [open, setOpen] = useState(false);
     const [selectedCourseId, setSelectedCourseId] = useState<Id<"university_courses"> | undefined>();
     const [selectedCourseCode, setSelectedCourseCode] = useState("");
-    const [level, setLevel] = useState("Intermediate");
+    const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleAdd = async () => {
@@ -57,7 +57,7 @@ export default function ExpertiseSection({ userId, isOwner }: ExpertiseSectionPr
 
         setIsSubmitting(true);
         try {
-            await addOffering({ courseId: selectedCourseId, level });
+            await addOffering({ courseId: selectedCourseId, category: "university", level });
             toast.success("Course expertise added");
             setOpen(false);
             setSelectedCourseId(undefined);
@@ -114,7 +114,7 @@ export default function ExpertiseSection({ userId, isOwner }: ExpertiseSectionPr
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Your Expertise Level</label>
-                                    <Select value={level} onValueChange={setLevel}>
+                                    <Select value={level} onValueChange={(v) => setLevel(v as any)}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select level" />
                                         </SelectTrigger>

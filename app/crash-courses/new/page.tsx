@@ -72,8 +72,11 @@ export default function NewCrashCoursePage() {
     );
 
     /* ── common fields ── */
+    const [courseType, setCourseType] = useState<"university" | "category">("university");
     const [courseId, setCourseId] = useState<Id<"university_courses"> | null>(null);
     const [courseCode, setCourseCode] = useState("");
+    const [category, setCategory] = useState<string>("");
+    const [customSubject, setCustomSubject] = useState<string>("");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [examType, setExamType] = useState<"quiz" | "midterm" | "final" | "other">("midterm");
@@ -125,7 +128,7 @@ export default function NewCrashCoursePage() {
             case 1:
                 return true; // origin is always set
             case 2:
-                return !!courseId && title.trim().length > 0 && description.trim().length > 0;
+                return (courseType === "university" ? !!courseId : !!category) && title.trim().length > 0 && description.trim().length > 0;
             case 3:
                 return topics.length > 0;
             case 4:
@@ -143,7 +146,7 @@ export default function NewCrashCoursePage() {
             default:
                 return false;
         }
-    }, [step, origin, courseId, title, description, topics, scheduledDate, scheduledTime, duration, pricePerStudent]);
+    }, [step, origin, courseType, courseId, category, title, description, topics, scheduledDate, scheduledTime, duration, pricePerStudent]);
 
     /* ── navigation ── */
     const goNext = () => {
@@ -155,8 +158,12 @@ export default function NewCrashCoursePage() {
 
     /* ── submit ── */
     const handleSubmit = async () => {
-        if (!courseId) {
+        if (courseType === "university" && !courseId) {
             toast.error("Please select a course");
+            return;
+        }
+        if (courseType === "category" && !category) {
+            toast.error("Please select a category");
             return;
         }
 
@@ -169,7 +176,9 @@ export default function NewCrashCoursePage() {
 
             const crashCourseId = await createCrashCourse({
                 origin,
-                courseId,
+                courseId: courseType === "university" ? courseId ?? undefined : undefined,
+                category: courseType === "category" ? category as any : undefined,
+                customSubject: courseType === "category" && customSubject ? customSubject : undefined,
                 title,
                 description,
                 topics,
@@ -294,6 +303,15 @@ export default function NewCrashCoursePage() {
     );
 
     /* ── Step 2: Course & Basics ── */
+    const CATEGORY_OPTIONS = [
+        { value: "o_levels", label: "O-Level", emoji: "📝" },
+        { value: "a_levels", label: "A-Level", emoji: "📚" },
+        { value: "sat", label: "SAT", emoji: "🎯" },
+        { value: "ib", label: "IB", emoji: "🌐" },
+        { value: "ap", label: "AP", emoji: "🏆" },
+        { value: "general", label: "General", emoji: "💡" },
+    ];
+
     const renderStep2 = () => (
         <div className="space-y-6">
             <div>
@@ -305,16 +323,79 @@ export default function NewCrashCoursePage() {
                 </p>
             </div>
 
+            {/* Course Type Toggle */}
             <div className="space-y-2">
-                <Label>Course *</Label>
-                <CourseSelector
-                    onSelect={(id, code) => {
-                        setCourseId(id);
-                        setCourseCode(code);
-                    }}
-                    defaultValue={courseCode}
-                />
+                <Label>Type *</Label>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => { setCourseType("university"); setCategory(""); }}
+                        className={`flex-1 py-2.5 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                            courseType === "university"
+                                ? "border-foreground bg-foreground text-background"
+                                : "border-border text-muted-foreground hover:border-foreground/30"
+                        }`}
+                    >
+                        🏛 University Course
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setCourseType("category"); setCourseId(null); setCourseCode(""); }}
+                        className={`flex-1 py-2.5 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                            courseType === "category"
+                                ? "border-foreground bg-foreground text-background"
+                                : "border-border text-muted-foreground hover:border-foreground/30"
+                        }`}
+                    >
+                        🎓 O-Level / SAT / IB…
+                    </button>
+                </div>
             </div>
+
+            {/* Conditional: University course picker vs. category chips */}
+            {courseType === "university" ? (
+                <div className="space-y-2">
+                    <Label>Course *</Label>
+                    <CourseSelector
+                        onSelect={(id, code) => {
+                            setCourseId(id);
+                            setCourseCode(code);
+                        }}
+                        defaultValue={courseCode}
+                    />
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Category *</Label>
+                        <div className="flex flex-wrap gap-2">
+                            {CATEGORY_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setCategory(opt.value)}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all ${
+                                        category === opt.value
+                                            ? "border-foreground bg-foreground text-background"
+                                            : "border-border text-muted-foreground hover:border-foreground/30"
+                                    }`}
+                                >
+                                    {opt.emoji} {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Subject <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                        <Input
+                            value={customSubject}
+                            onChange={(e) => setCustomSubject(e.target.value)}
+                            placeholder="e.g. Mathematics, Physics, English Literature"
+                            maxLength={100}
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-2">
                 <Label>Title *</Label>
@@ -577,7 +658,25 @@ export default function NewCrashCoursePage() {
                 />
 
                 {/* Course & Basics */}
-                <ReviewRow label="Course" value={courseCode || "—"} onEdit={() => setStep(2)} />
+                <ReviewRow
+                    label="Course Type"
+                    value={courseType === "university" ? "🏛 University Course" : "🎓 Exam / General"}
+                    onEdit={() => setStep(2)}
+                />
+                {courseType === "university" ? (
+                    <ReviewRow label="Course" value={courseCode || "—"} onEdit={() => setStep(2)} />
+                ) : (
+                    <>
+                        <ReviewRow
+                            label="Category"
+                            value={category ? category.replace("_", "-").toUpperCase() : "—"}
+                            onEdit={() => setStep(2)}
+                        />
+                        {customSubject && (
+                            <ReviewRow label="Subject" value={customSubject} onEdit={() => setStep(2)} />
+                        )}
+                    </>
+                )}
                 <ReviewRow label="Title" value={title || "—"} onEdit={() => setStep(2)} />
                 <ReviewRow label="Exam Type" value={examType.charAt(0).toUpperCase() + examType.slice(1)} onEdit={() => setStep(2)} />
                 <ReviewRow

@@ -51,7 +51,7 @@ export default function PublicProfilePage() {
                                 {user.name}
                                 {user.isVerified && <VerifiedBadge />}
                             </h1>
-                            <p className="text-muted-foreground text-lg">{user.university}</p>
+                            <p className="text-muted-foreground text-lg">{user.universityName}</p>
                         </div>
                         {!isOwner && currentUser && (
                             <ReportDialog targetId={user._id} />

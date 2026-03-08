@@ -67,7 +67,7 @@ async function fetchUser(ctx: Ctx): Promise<Doc<"users">> {
 export async function requireUser(ctx: Ctx, options?: RequireUserOptions) {
     const user = await fetchUser(ctx);
 
-    if (user.isBanned && !options?.allowBanned) {
+    if (user.bannedAt !== undefined && !options?.allowBanned) {
         throw new ConvexError("Your account has been banned. Please contact support.");
     }
 
@@ -76,7 +76,7 @@ export async function requireUser(ctx: Ctx, options?: RequireUserOptions) {
 
 export async function requireAdmin(ctx: Ctx) {
     const user = await requireUser(ctx);
-    if (!user.isAdmin) {
+    if (user.role !== "admin") {
         throw new ConvexError("Unauthorized: Admin access required");
     }
     return user;
@@ -91,7 +91,7 @@ export async function logAudit(
         action: string;
         actorId?: Id<"users">;
         targetId?: Id<"users">;
-        targetType?: string;
+        targetType?: "user" | "ticket" | "offer" | "review" | "crash_course" | "tutor_credential" | "report";
         details?: unknown;
     }
 ) {

@@ -12,7 +12,10 @@ export const seedJobWithOffers = internalMutation({
             tokenIdentifier: "test_student_" + Date.now(),
             reputation: 5,
             role: "student",
-            isVerified: true,
+            verificationTier: "academic" as const,
+            ratingSum: 0,
+            ratingCount: 0,
+            marketingConsent: false,
         });
 
         // Create a dummy student for history
@@ -22,7 +25,10 @@ export const seedJobWithOffers = internalMutation({
             tokenIdentifier: "dummy_seed_" + Date.now(),
             reputation: 5,
             role: "student",
-            isVerified: false,
+            verificationTier: "none" as const,
+            ratingSum: 0,
+            ratingCount: 0,
+            marketingConsent: false,
         });
 
         // 2. Create a course (to test expertise match)
@@ -42,7 +48,7 @@ export const seedJobWithOffers = internalMutation({
             department: "CS",
             status: "open",
             urgency: "high",
-            helpType: "Debugging",
+helpType: "debugging",
             createdAt: Date.now(),
             budget: 5000,
         });
@@ -64,7 +70,10 @@ export const seedJobWithOffers = internalMutation({
                 tokenIdentifier: `test_tutor_${i}_` + Date.now(),
                 reputation,
                 role: "tutor",
-                isVerified,
+                verificationTier: isVerified ? "academic" as const : "none" as const,
+                ratingSum: 0,
+                ratingCount: 0,
+                marketingConsent: false,
             });
 
             // Create profile
@@ -79,7 +88,7 @@ export const seedJobWithOffers = internalMutation({
                     acceptingPaid: true,
                     acceptingFree: false,
                     minRate: 1000,
-                    allowedHelpTypes: ["Debugging"],
+                    allowedHelpTypes: ["debugging"] as const,
                 }
             });
 
@@ -88,7 +97,8 @@ export const seedJobWithOffers = internalMutation({
                 await ctx.db.insert("tutor_offerings", {
                     tutorId,
                     courseId,
-                    level: Math.random() > 0.5 ? "Expert" : "Intermediate",
+                    category: "university",
+                    level: Math.random() > 0.5 ? "advanced" as const : "intermediate" as const,
                 });
             }
 
@@ -104,7 +114,7 @@ export const seedJobWithOffers = internalMutation({
                     createdAt: Date.now() - 10000000,
                     assignedTutorId: tutorId,
                     urgency: "low",
-                    helpType: "Debugging",
+                    helpType: "debugging",
                 });
 
                 await ctx.db.insert("offers", {

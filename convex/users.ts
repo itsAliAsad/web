@@ -6,9 +6,10 @@ import { requireUser } from "./utils";
 const updateSchema = z
     .object({
         bio: z.string().optional(),
-        university: z.string().optional(),
         avatar: z.string().optional(),
         name: z.string().optional(),
+        personalEmail: z.string().email().optional(),
+        whatsappNumber: z.string().optional(),
         // New fields
         currency: z.string().optional(),
         language: z.string().optional(),
@@ -62,9 +63,7 @@ export const store = mutation({
             ratingSum: 0,
             ratingCount: 0,
             role: "student",
-            isVerified: false,
-            isAdmin: false,
-            isBanned: false,
+            verificationTier: "none",
             // Defaults
             lastLoginAt: Date.now(),
             notificationPreferences: {
@@ -85,12 +84,18 @@ export const currentUser = query({
     handler: async (ctx) => {
         try {
             const user = await requireUser(ctx, { allowBanned: true });
-            const ratingSum = user.ratingSum ?? 0;
-            const ratingCount = user.ratingCount ?? 0;
-
+            let universityName: string | undefined;
+            if (user.universityId) {
+                const uni = await ctx.db.get(user.universityId);
+                universityName = uni?.name;
+            }
             return {
                 ...user,
-                reputation: ratingCount > 0 ? ratingSum / ratingCount : 0,
+                universityName,
+                reputation: user.ratingCount > 0 ? user.ratingSum / user.ratingCount : 0,
+                isAdmin: user.role === "admin",
+                isVerified: user.verificationTier === "academic" || user.verificationTier === "expert",
+                isBanned: user.bannedAt !== undefined,
             };
         } catch (error) {
             // If unauthenticated or user not found, return null to trigger UserSync
@@ -114,9 +119,10 @@ export const update = mutation({
 
         const patch: Record<string, unknown> = {};
         if (parsed.bio !== undefined) patch.bio = parsed.bio;
-        if (parsed.university !== undefined) patch.university = parsed.university;
         if (parsed.avatar !== undefined) patch.image = parsed.avatar;
         if (parsed.name !== undefined) patch.name = parsed.name;
+        if (parsed.personalEmail !== undefined) patch.personalEmail = parsed.personalEmail;
+        if (parsed.whatsappNumber !== undefined) patch.whatsappNumber = parsed.whatsappNumber;
         if (parsed.currency !== undefined) patch.currency = parsed.currency;
         if (parsed.language !== undefined) patch.language = parsed.language;
         if (parsed.theme !== undefined) patch.theme = parsed.theme;
@@ -139,8 +145,12 @@ export const get = query({
         const user = await ctx.db.get(args.id);
         if (!user) return null;
 
-        const ratingSum = user.ratingSum ?? 0;
-        const ratingCount = user.ratingCount ?? 0;
+        // Resolve university name from universityId
+        let universityName: string | undefined;
+        if (user.universityId) {
+            const uni = await ctx.db.get(user.universityId);
+            universityName = uni?.name;
+        }
 
         // Return only public profile fields
         return {
@@ -148,10 +158,10 @@ export const get = query({
             name: user.name,
             image: user.image,
             bio: user.bio,
-            university: user.university,
+            universityName,
             role: user.role,
-            isVerified: user.isVerified,
-            reputation: ratingCount > 0 ? ratingSum / ratingCount : 0,
+            isVerified: user.verificationTier === "academic" || user.verificationTier === "expert",
+            reputation: user.ratingCount > 0 ? user.ratingSum / user.ratingCount : 0,
             // Links are public for profile display
             links: user.links,
         };
@@ -164,6 +174,86 @@ export const setRole = mutation({
         const user = await requireUser(ctx);
         // Note: Admin role can only be set via admin.setAdmin()
         await ctx.db.patch(user._id, { role: args.role });
+        return args.role;
+    },
+});
+
+export const completeOnboarding = mutation({
+    args: {
+        role: v.union(v.literal("student"), v.literal("tutor")),
+        bio: v.string(),
+        universityId: v.optional(v.id("universities")),
+        teachingScope: v.optional(
+            v.array(
+                v.union(
+                    v.literal("university"),
+                    v.literal("o_levels"),
+                    v.literal("a_levels"),
+                    v.literal("sat"),
+                    v.literal("ib"),
+                    v.literal("ap"),
+                    v.literal("general"),
+                )
+            )
+        ),
+        // Tutor-specific fields
+        personalEmail: v.optional(v.string()),
+        whatsappNumber: v.optional(v.string()),
+        helpTypes: v.optional(v.array(v.union(
+            v.literal("debugging"),
+            v.literal("concept"),
+            v.literal("exam_prep"),
+            v.literal("review"),
+            v.literal("assignment"),
+            v.literal("project"),
+            v.literal("mentorship"),
+            v.literal("interview_prep"),
+            v.literal("other"),
+        ))),
+        minRate: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireUser(ctx);
+
+        // Update user record
+        const userPatch: Record<string, unknown> = {
+            role: args.role,
+            bio: args.bio,
+            onboardingCompletedAt: Date.now(),
+        };
+        if (args.universityId) userPatch.universityId = args.universityId;
+        if (args.teachingScope) userPatch.teachingScope = args.teachingScope;
+        if (args.personalEmail) userPatch.personalEmail = args.personalEmail;
+        if (args.whatsappNumber) userPatch.whatsappNumber = args.whatsappNumber;
+
+        await ctx.db.patch(user._id, userPatch);
+
+        // If tutor, create tutor_profiles row
+        if (args.role === "tutor") {
+            // Check if profile already exists (idempotency)
+            const existing = await ctx.db
+                .query("tutor_profiles")
+                .withIndex("by_user", (q) => q.eq("userId", user._id))
+                .unique();
+
+            if (!existing) {
+                await ctx.db.insert("tutor_profiles", {
+                    userId: user._id,
+                    bio: args.bio,
+                    isOnline: true,
+                    lastActiveAt: Date.now(),
+                    creditBalance: 0,
+                    settings: {
+                        acceptingRequests: true,
+                        acceptingPaid: true,
+                        acceptingFree: false,
+                        minRate: args.minRate ?? 500,
+                        allowedHelpTypes: args.helpTypes ?? [],
+                    },
+                });
+            }
+        }
+
         return args.role;
     },
 });
@@ -210,7 +300,17 @@ export const updateTutorSettings = mutation({
             acceptingPaid: v.boolean(),
             acceptingFree: v.boolean(),
             minRate: v.number(),
-            allowedHelpTypes: v.array(v.string()),
+            allowedHelpTypes: v.array(v.union(
+                v.literal("debugging"),
+                v.literal("concept"),
+                v.literal("exam_prep"),
+                v.literal("review"),
+                v.literal("assignment"),
+                v.literal("project"),
+                v.literal("mentorship"),
+                v.literal("interview_prep"),
+                v.literal("other"),
+            )),
         }),
     },
     handler: async (ctx, args) => {

@@ -37,7 +37,7 @@ export const listConversations = query({
 
                 return {
                     ...c,
-                    otherUser,
+                    otherUser: otherUser ? { ...otherUser, isVerified: otherUser.verificationTier === "academic" || otherUser.verificationTier === "expert" } : null,
                     lastMessage,
                 };
             })
@@ -242,7 +242,7 @@ export const getConversation = query({
 
         return {
             ...conversation,
-            otherUser,
+            otherUser: otherUser ? { ...otherUser, isVerified: otherUser.verificationTier === "academic" || otherUser.verificationTier === "expert" } : null,
         };
     },
 });

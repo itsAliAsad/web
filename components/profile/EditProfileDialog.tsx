@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, Mail, Phone } from "lucide-react";
 
 interface EditProfileDialogProps {
     user: Doc<"users">;
@@ -23,10 +23,13 @@ export default function EditProfileDialog({ user }: EditProfileDialogProps) {
 
     const [name, setName] = useState(user.name || "");
     const [bio, setBio] = useState(user.bio || "");
-    const [university, setUniversity] = useState(user.university || "");
     const [linkedin, setLinkedin] = useState(user.links?.linkedin || "");
     const [twitter, setTwitter] = useState(user.links?.twitter || "");
     const [portfolio, setPortfolio] = useState(user.links?.portfolio || "");
+    const [personalEmail, setPersonalEmail] = useState((user as any).personalEmail || "");
+    const [whatsappNumber, setWhatsappNumber] = useState((user as any).whatsappNumber || "");
+
+    const isTutor = user.role === "tutor";
 
     const handleSave = async () => {
         setIsLoading(true);
@@ -35,12 +38,13 @@ export default function EditProfileDialog({ user }: EditProfileDialogProps) {
                 updates: {
                     name,
                     bio,
-                    university,
                     links: {
                         linkedin,
                         twitter,
                         portfolio
-                    }
+                    },
+                    ...(isTutor && personalEmail ? { personalEmail } : {}),
+                    ...(isTutor && whatsappNumber ? { whatsappNumber } : {}),
                 }
             });
             toast.success("Profile updated");
@@ -76,10 +80,6 @@ export default function EditProfileDialog({ user }: EditProfileDialogProps) {
                         <Label htmlFor="bio">Bio</Label>
                         <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} />
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="university">University</Label>
-                        <Input id="university" value={university} onChange={(e) => setUniversity(e.target.value)} />
-                    </div>
 
                     <div className="grid gap-2">
                         <Label>Social Links</Label>
@@ -89,6 +89,35 @@ export default function EditProfileDialog({ user }: EditProfileDialogProps) {
                             <Input placeholder="Portfolio URL" value={portfolio} onChange={(e) => setPortfolio(e.target.value)} />
                         </div>
                     </div>
+
+                    {isTutor && (
+                        <div className="grid gap-2">
+                            <Label>Contact Details (Private)</Label>
+                            <p className="text-xs text-muted-foreground">Only visible to the Peer team.</p>
+                            <div className="grid gap-2">
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type="email"
+                                        placeholder="Personal email"
+                                        value={personalEmail}
+                                        onChange={(e) => setPersonalEmail(e.target.value)}
+                                        className="pl-10"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type="tel"
+                                        placeholder="WhatsApp number"
+                                        value={whatsappNumber}
+                                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                                        className="pl-10"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

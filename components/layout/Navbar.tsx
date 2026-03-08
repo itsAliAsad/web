@@ -5,6 +5,7 @@ import { useRole } from "@/context/RoleContext";
 import RoleSwitcher from "./RoleSwitcher";
 import { Button } from "@/components/ui/button";
 import { UserButton } from "@clerk/nextjs";
+import { Settings } from "lucide-react";
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -20,12 +21,25 @@ export default function Navbar() {
     const { role } = useRole();
     const pathname = usePathname();
     const user = useQuery(api.users.currentUser);
+    const conversations = useQuery(
+        api.messages.listConversations,
+        user ? {} : "skip"
+    );
 
     const isActive = (path: string) => pathname === path;
+
+    const unreadCount = conversations?.filter(c =>
+        c.lastMessage &&
+        !c.lastMessage.isRead &&
+        c.lastMessage.senderId !== user?._id
+    ).length ?? 0;
     
     // On landing page before launch, show minimal navbar
     const isLandingPage = pathname === "/";
-    const showFullNav = IS_LAUNCHED || (!isLandingPage && user?.isAdmin);
+    const showFullNav = IS_LAUNCHED || (!isLandingPage && user?.role === "admin");
+
+    // Hide navbar entirely on the /teach marketing landing page
+    if (pathname === "/teach") return null;
 
     return (
         <nav className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -56,7 +70,7 @@ export default function Navbar() {
                                             isActive("/requests/new") ? "text-foreground" : "text-foreground/60"
                                         )}
                                     >
-                                        Post Request
+                                        Get Help
                                     </Link>
                                 </>
                             ) : (
@@ -77,7 +91,16 @@ export default function Navbar() {
                                             isActive("/search") ? "text-foreground" : "text-foreground/60"
                                         )}
                                     >
-                                        Find Jobs
+                                        Browse Jobs
+                                    </Link>
+                                    <Link
+                                        href="/profile"
+                                        className={cn(
+                                            "transition-colors hover:text-foreground/80",
+                                            isActive("/profile") ? "text-foreground" : "text-foreground/60"
+                                        )}
+                                    >
+                                        My Profile
                                     </Link>
                                 </>
                             )}
@@ -98,25 +121,13 @@ export default function Navbar() {
                                 )}
                             >
                                 Messages
-                                {(() => {
-                                    const conversations = useQuery(
-                                        api.messages.listConversations,
-                                        user ? {} : "skip"
-                                    );
-                                    const unreadCount = conversations?.filter(c =>
-                                        c.lastMessage &&
-                                        !c.lastMessage.isRead &&
-                                        c.lastMessage.senderId !== user?._id
-                                    ).length ?? 0;
-
-                                    return unreadCount > 0 ? (
-                                        <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-amber-500 text-white">
-                                            {unreadCount}
-                                        </span>
-                                    ) : null;
-                                })()}
+                                {unreadCount > 0 && (
+                                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-amber-500 text-white">
+                                        {unreadCount}
+                                    </span>
+                                )}
                             </Link>
-                            {user?.isAdmin && (
+                            {user?.role === "admin" && (
                                 <Link
                                     href="/admin"
                                     className={cn(
@@ -127,20 +138,12 @@ export default function Navbar() {
                                     Admin Portal
                                 </Link>
                             )}
-                            <Link
-                                href="/settings"
-                                className={cn(
-                                    "transition-colors hover:text-foreground/80",
-                                    isActive("/settings") ? "text-foreground" : "text-foreground/60"
-                                )}
-                            >
-                                Settings
-                            </Link>
+
                         </div>
                     )}
                     
                     {/* On landing page, only show Admin link for admins */}
-                    {!showFullNav && user?.isAdmin && (
+                    {!showFullNav && user?.role === "admin" && (
                         <div className="hidden md:flex items-center gap-6 text-sm font-medium">
                             <Link
                                 href="/admin"
@@ -166,7 +169,15 @@ export default function Navbar() {
                             {user && <NotificationDropdown />}
                         </>
                     )}
-                    <UserButton afterSignOutUrl="/" />
+                    <UserButton afterSignOutUrl="/">
+                        <UserButton.MenuItems>
+                            <UserButton.Link
+                                label="Settings"
+                                labelIcon={<Settings size={16} />}
+                                href="/settings"
+                            />
+                        </UserButton.MenuItems>
+                    </UserButton>
                 </div>
             </div>
         </nav>

@@ -47,7 +47,7 @@ export default function CreateRequestPage() {
     const [selectedCourseCode, setSelectedCourseCode] = useState<string>("");
     const [ticketType, setTicketType] = useState<"course" | "general">("course");
     const [customCategory, setCustomCategory] = useState<string>("");
-    const [helpType, setHelpType] = useState<string>("concept");
+    const [helpType, setHelpType] = useState<"debugging" | "concept" | "exam_prep" | "review" | "assignment" | "project" | "mentorship" | "interview_prep" | "other">("concept");
     const [urgency, setUrgency] = useState<string>("1440");
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -77,10 +77,13 @@ export default function CreateRequestPage() {
                 description: formData.get("description") as string,
                 courseId: ticketType === "course" ? selectedCourseId : undefined,
                 customCategory: ticketType === "general" ? customCategory : undefined,
+                universityId: user?.universityId ?? undefined,
                 urgency: urgencyLevel,
                 helpType,
                 budget: Number(formData.get("budget")) || undefined,
-                deadline: (formData.get("deadline") as string) || undefined,
+                deadline: formData.get("deadline")
+                    ? new Date(formData.get("deadline") as string).getTime()
+                    : undefined,
             });
             toast.success("Request posted successfully!");
             router.push("/dashboard/buyer");
@@ -201,7 +204,7 @@ export default function CreateRequestPage() {
                                 <button
                                     key={type.value}
                                     type="button"
-                                    onClick={() => setHelpType(type.value)}
+                                    onClick={() => setHelpType(type.value as any)}
                                     className={`p-3 rounded-xl border-2 text-center transition-all ${helpType === type.value
                                         ? "border-foreground bg-foreground text-background"
                                         : "border-foreground/10 hover:border-foreground/20"

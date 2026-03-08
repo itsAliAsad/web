@@ -7,12 +7,23 @@ export const create = mutation({
         // Course is now optional for general requests
         courseId: v.optional(v.id("university_courses")),
         customCategory: v.optional(v.string()), // For non-course requests
+        universityId: v.optional(v.id("universities")), // Scoping: null = open to all
         title: v.string(),
         description: v.string(),
         urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-        helpType: v.string(),
+        helpType: v.union(
+            v.literal("debugging"),
+            v.literal("concept"),
+            v.literal("exam_prep"),
+            v.literal("review"),
+            v.literal("assignment"),
+            v.literal("project"),
+            v.literal("mentorship"),
+            v.literal("interview_prep"),
+            v.literal("other"),
+        ),
         budget: v.optional(v.number()),
-        deadline: v.optional(v.string()),
+        deadline: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const user = await requireUser(ctx);
@@ -53,10 +64,17 @@ export const create = mutation({
             }
         }
 
+        // Resolve universityId: use explicit arg, fall back to student's own university
+        let universityId = args.universityId;
+        if (!universityId && user.universityId) {
+            universityId = user.universityId;
+        }
+
         const ticketId = await ctx.db.insert("tickets", {
             studentId: user._id,
             courseId: args.courseId,
             customCategory: args.customCategory,
+            universityId,
             department,
             title: args.title,
             description: args.description,
@@ -116,12 +134,22 @@ export const listOpen = query({
         category: v.optional(v.string()),
         helpType: v.optional(v.string()),
         department: v.optional(v.string()),
+        universityId: v.optional(v.id("universities")), // filter to specific university
+        showAll: v.optional(v.boolean()),               // override university filter
     },
     handler: async (ctx, args) => {
         let results;
 
-        // Use department index if filtering by department
-        if (args.department && args.department !== "all") {
+        // Use university index when scoping (and no dept filter)
+        if (args.universityId && !args.showAll && !args.department) {
+            results = await ctx.db
+                .query("tickets")
+                .withIndex("by_university", (q) =>
+                    q.eq("universityId", args.universityId).eq("status", "open")
+                )
+                .order("desc")
+                .collect();
+        } else if (args.department && args.department !== "all") {
             results = await ctx.db
                 .query("tickets")
                 .withIndex("by_department", (q) =>
@@ -129,12 +157,24 @@ export const listOpen = query({
                 )
                 .order("desc")
                 .collect();
+
+            // Apply university filter post-query when combined with dept
+            if (args.universityId && !args.showAll) {
+                results = results.filter((t) => t.universityId === args.universityId);
+            }
         } else {
             results = await ctx.db
                 .query("tickets")
                 .withIndex("by_status", (q) => q.eq("status", "open"))
                 .order("desc")
                 .collect();
+
+            // Apply university filter when showAll is not set
+            if (args.universityId && !args.showAll) {
+                results = results.filter(
+                    (t) => !t.universityId || t.universityId === args.universityId
+                );
+            }
         }
 
         if (args.helpType && args.helpType !== "all") {
@@ -160,16 +200,14 @@ export const get = query({
 
         let studentDetails = undefined;
         if (student) {
-            const ratingSum = student.ratingSum ?? 0;
-            const ratingCount = student.ratingCount ?? 0;
-            const reputation = ratingCount > 0 ? ratingSum / ratingCount : 0;
+            const reputation = student.ratingCount > 0 ? student.ratingSum / student.ratingCount : 0;
 
             studentDetails = {
                 _id: student._id,
                 name: student.name,
                 image: student.image,
-                university: student.university,
-                isVerified: student.isVerified,
+                universityName: student.universityId ? (await ctx.db.get(student.universityId))?.name : undefined,
+                isVerified: student.verificationTier === "academic" || student.verificationTier === "expert",
                 reputation
             };
         }
@@ -217,6 +255,8 @@ export const search = query({
         category: v.optional(v.string()),
         helpType: v.optional(v.string()),
         department: v.optional(v.string()),
+        universityId: v.optional(v.id("universities")),
+        showAll: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         let results = await ctx.db
@@ -228,6 +268,13 @@ export const search = query({
 
         // Filter out non-open jobs
         results = results.filter((t) => t.status === "open");
+
+        // University scoping
+        if (args.universityId && !args.showAll) {
+            results = results.filter(
+                (t) => !t.universityId || t.universityId === args.universityId
+            );
+        }
 
         // Filter by department
         if (args.department && args.department !== "all") {
@@ -301,6 +348,7 @@ export const matchingRecentJobs = query({
 
         const allowedHelpTypes = tutorProfile?.settings?.allowedHelpTypes || [];
         const courseIds = offerings.map(o => o.courseId);
+        const tutorUniversityId = user.universityId;
 
         // Get all open tickets (no time restriction)
         const allOpenTickets = await ctx.db
@@ -314,6 +362,25 @@ export const matchingRecentJobs = query({
             .map(ticket => {
                 let score = 0;
 
+                // University scoping: tickets from tutor's university get a strong boost
+                // Tickets with no universityId are open to all (still shown, lower priority)
+                let universityMatch = false;
+                if (tutorUniversityId) {
+                    if (!ticket.universityId) {
+                        // Open to all — show but with reduced priority
+                        score += 0.3;
+                    } else if (ticket.universityId === tutorUniversityId) {
+                        score += 1.5; // Strong boost for same university
+                        universityMatch = true;
+                    } else {
+                        // Different university — show at bottom with low score
+                        score += 0.1;
+                    }
+                } else {
+                    // Tutor has no university set — show all
+                    score += 0.5;
+                }
+
                 // Course matching logic
                 if (!ticket.courseId) {
                     // General job (no courseId) - show to everyone at lower priority
@@ -325,8 +392,8 @@ export const matchingRecentJobs = query({
                     // Tutor has no offerings - show all jobs at base priority
                     score += 0.5;
                 } else {
-                    // No match - filter out
-                    return null;
+                    // No course match — only include if university matches
+                    if (!universityMatch && tutorUniversityId) return null;
                 }
 
                 // Help type filter (if tutor has preferences set)
@@ -344,7 +411,7 @@ export const matchingRecentJobs = query({
                 else if (hoursOld < 6) score += 0.10;
                 else if (hoursOld < 24) score += 0.05;
 
-                return { ...ticket, _score: score };
+                return { ...ticket, _score: score, universityMatch };
             })
             .filter((t): t is NonNullable<typeof t> => t !== null);
 
@@ -354,10 +421,37 @@ export const matchingRecentJobs = query({
             return b.createdAt - a.createdAt;
         });
 
-        // Return top 10 (without the internal score field)
-        return scoredTickets.slice(0, 10).map(({ _score, ...ticket }) => ticket);
+        // Return top 15 (without the internal score field)
+        return scoredTickets.slice(0, 15).map(({ _score, ...ticket }) => ticket);
     },
 });
 
 // Alias for new naming (can be used in frontend)
 export const getRecommendedJobs = matchingRecentJobs;
+
+// Public aggregate stats for the /teach landing page — no auth required
+export const getPublicStats = query({
+    args: {},
+    handler: async (ctx) => {
+        const openTickets = await ctx.db
+            .query("tickets")
+            .withIndex("by_status", (q) => q.eq("status", "open"))
+            .collect();
+
+        const resolvedTickets = await ctx.db
+            .query("tickets")
+            .withIndex("by_status", (q) => q.eq("status", "resolved"))
+            .collect();
+
+        const allUsers = await ctx.db.query("users").collect();
+        const activeTutors = allUsers.filter(
+            (u) => u.role === "tutor" && !u.bannedAt && !u.deletedAt
+        ).length;
+
+        return {
+            openTickets: openTickets.length,
+            resolvedTickets: resolvedTickets.length,
+            activeTutors,
+        };
+    },
+});

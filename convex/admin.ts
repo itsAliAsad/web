@@ -40,7 +40,7 @@ export const banUser = mutation({
     handler: async (ctx, args) => {
         const admin = await requireAdmin(ctx);
         await ctx.db.patch(args.userId, { 
-            isBanned: args.isBanned,
+            bannedAt: args.isBanned ? Date.now() : undefined,
             banReason: args.isBanned ? args.banReason : undefined,
         });
 
@@ -113,7 +113,7 @@ export const setVerification = mutation({
     handler: async (ctx, args) => {
         const admin = await requireAdmin(ctx);
         await ctx.db.patch(args.userId, {
-            isVerified: args.isVerified,
+            verificationTier: args.isVerified ? "academic" : "none",
             verifiedBy: args.isVerified ? admin._id : undefined,
             verifiedAt: args.isVerified ? Date.now() : undefined,
         });
@@ -131,7 +131,7 @@ export const setAdmin = mutation({
     args: { userId: v.id("users"), isAdmin: v.boolean() },
     handler: async (ctx, args) => {
         const admin = await requireAdmin(ctx);
-        await ctx.db.patch(args.userId, { isAdmin: args.isAdmin });
+        await ctx.db.patch(args.userId, { role: args.isAdmin ? "admin" : "student" });
 
         await logAudit(ctx, {
             action: args.isAdmin ? "admin_granted" : "admin_revoked",

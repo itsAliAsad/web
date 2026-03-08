@@ -65,14 +65,15 @@ export const create = mutation({
             ticketId: args.ticketId,
             rating: args.rating,
             comment: args.comment,
+            createdAt: Date.now(),
             type: args.type,
         });
 
         const reviewee = await ctx.db.get(revieweeId);
         if (!reviewee) throw new Error("Reviewee not found");
 
-        const nextRatingSum = (reviewee.ratingSum ?? 0) + args.rating;
-        const nextRatingCount = (reviewee.ratingCount ?? 0) + 1;
+        const nextRatingSum = reviewee.ratingSum + args.rating;
+        const nextRatingCount = reviewee.ratingCount + 1;
         const newReputation =
             nextRatingCount > 0 ? nextRatingSum / nextRatingCount : 0;
 

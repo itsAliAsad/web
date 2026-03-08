@@ -3,6 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
     '/',                    // Home page (has sign-in button)
+    '/teach',               // Tutor recruitment landing page (public)
     '/api/webhooks(.*)',    // Webhooks need to be public
 ]);
 

@@ -6,7 +6,15 @@ export const create = mutation({
     args: {
         targetId: v.id("users"),
         ticketId: v.optional(v.id("tickets")),
-        reason: v.string(),
+        reason: v.union(
+            v.literal("spam"),
+            v.literal("harassment"),
+            v.literal("fake_credentials"),
+            v.literal("inappropriate_content"),
+            v.literal("no_show"),
+            v.literal("payment_dispute"),
+            v.literal("other"),
+        ),
         description: v.optional(v.string()),
     },
     handler: async (ctx, args) => {

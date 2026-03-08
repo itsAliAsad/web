@@ -4,6 +4,7 @@ import AdminGuard from "@/components/admin/AdminGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReportsTable from "@/components/admin/ReportsTable";
 import UserManagement from "@/components/admin/UserManagement";
+import VerificationsQueue from "@/components/admin/VerificationsQueue";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -86,6 +87,7 @@ export default function AdminPage() {
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="users">Users</TabsTrigger>
                         <TabsTrigger value="reports">Reports</TabsTrigger>
+                        <TabsTrigger value="verifications">Verifications</TabsTrigger>
                         <TabsTrigger value="audit">Audit Logs</TabsTrigger>
                     </TabsList>
                     <TabsContent value="overview" className="space-y-4">
@@ -147,6 +149,9 @@ export default function AdminPage() {
                     </TabsContent>
                     <TabsContent value="reports">
                         <ReportsTable />
+                    </TabsContent>
+                    <TabsContent value="verifications">
+                        <VerificationsQueue />
                     </TabsContent>
                     <TabsContent value="audit">
                         <Card>

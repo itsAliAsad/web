@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { Search, TrendingUp, TrendingDown, ArrowRight, Sparkles, Zap, Target, Briefcase, ChevronDown, Clock, Send, GraduationCap } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, ArrowRight, Sparkles, Zap, Target, Briefcase, ChevronDown, Clock, Send, GraduationCap, AlertTriangle, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EarningsChart } from "@/components/dashboard/EarningsChart";
@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import BidCard from "@/components/dashboard/BidCard";
 import { formatStatus } from "@/lib/utils";
 import { OnlinePresence } from "@/app/components/OnlinePresence";
+import ProfileCompletenessCard from "@/components/dashboard/ProfileCompletenessCard";
 
 export default function SellerDashboard() {
     const user = useQuery(api.users.currentUser);
@@ -27,6 +28,10 @@ export default function SellerDashboard() {
     const freshJobs = useQuery(api.tickets.matchingRecentJobs);
     const upcomingCrashCourses = useQuery(api.crash_courses.getUpcoming);
     const updateStatus = useMutation(api.tutor_profiles.updateOnlineStatus);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const myCredentials = useQuery((api as any).credentials.listMyCredentials) as
+        | Array<{ _id: string; credentialType: string; status: string; rejectionReason?: string }>
+        | undefined;
 
     const [statusLoading, setStatusLoading] = useState(false);
 
@@ -198,7 +203,68 @@ export default function SellerDashboard() {
                 </div>
             </header>
 
-            {/* Top Section: Fresh Opportunities (Left) + KPIs (Right) */}
+            {/* Credential Status Banners */}
+            {myCredentials && myCredentials.length > 0 && (() => {
+                const needsResubmit = myCredentials.filter(c => c.status === "needs_resubmit");
+                const rejected = myCredentials.filter(c => c.status === "rejected");
+                const pending = myCredentials.filter(c => c.status === "pending");
+
+                const CRED_LABEL: Record<string, string> = {
+                    o_level: "O-Level", a_level: "A-Level", sat: "SAT", ib: "IB", ap: "AP",
+                    university_transcript: "University Transcript", university_degree: "University Degree",
+                    other_certificate: "Certificate",
+                };
+                return (
+                    <div className="mb-6 space-y-3">
+                        {needsResubmit.map((c) => (
+                            <div key={c._id} className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
+                                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                                        Action required: Your {CRED_LABEL[c.credentialType] ?? c.credentialType} credential needs resubmission
+                                    </p>
+                                    {c.rejectionReason && (
+                                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                                            Admin note: &quot;{c.rejectionReason}&quot;
+                                        </p>
+                                    )}
+                                </div>
+                                <Link href="/profile">
+                                    <button className="shrink-0 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-400 rounded-lg px-3 py-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors whitespace-nowrap">
+                                        Resubmit Now →
+                                    </button>
+                                </Link>
+                            </div>
+                        ))}
+                        {rejected.map((c) => (
+                            <div key={c._id} className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+                                <XCircle className="h-5 w-5 text-destructive shrink-0" />
+                                <p className="text-sm flex-1">
+                                    <span className="font-semibold">Your {CRED_LABEL[c.credentialType] ?? c.credentialType} credential was rejected.</span>
+                                    {c.rejectionReason && <span className="text-muted-foreground"> Reason: {c.rejectionReason}</span>}
+                                </p>
+                                <Link href="/profile">
+                                    <button className="text-xs text-primary hover:underline whitespace-nowrap">Add a different credential</button>
+                                </Link>
+                            </div>
+                        ))}
+                        {pending.length > 0 && needsResubmit.length === 0 && rejected.length === 0 && (
+                            <div className="flex items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
+                                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <p className="text-sm text-muted-foreground">
+                                    {pending.length === 1
+                                        ? `Your ${CRED_LABEL[pending[0].credentialType] ?? pending[0].credentialType} credential is under review. We'll update you within 48 hrs.`
+                                        : `${pending.length} credentials are under review. We'll update you within 48 hrs.`}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
+            {/* Profile Completeness */}
+            <ProfileCompletenessCard role="tutor" />
+
             <section className="grid grid-cols-12 gap-6 mb-10 items-start">
                 {/* Fresh Opportunities - Hero Card (8 cols) */}
                 <Card className="col-span-12 lg:col-span-8 glass-card border-none relative overflow-hidden flex flex-col" style={{ height: '536px' }}>

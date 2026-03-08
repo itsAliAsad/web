@@ -67,6 +67,9 @@ export default function UserManagement() {
             <TableBody>
                 {users.map((user) => {
                     const isSelf = currentUser?._id === user._id;
+                    const isVerified = user.verificationTier === "academic" || user.verificationTier === "expert";
+                    const isAdmin = user.role === "admin";
+                    const isBanned = user.bannedAt !== undefined;
                     return (
                         <TableRow key={user._id}>
                             <TableCell>{user.name}</TableCell>
@@ -75,11 +78,11 @@ export default function UserManagement() {
                             <TableCell>
                                 <div className="flex items-center gap-2">
                                     <Switch
-                                        checked={!!user.isVerified}
+                                        checked={!!isVerified}
                                         onCheckedChange={(checked) => handleVerify(user._id, checked)}
-                                        disabled={!!user.isAdmin}
+                                        disabled={!!isAdmin}
                                     />
-                                    {user.isVerified ? (
+                                    {isVerified ? (
                                         <Badge variant="outline">Verified</Badge>
                                     ) : (
                                         <Badge variant="secondary">Unverified</Badge>
@@ -89,7 +92,7 @@ export default function UserManagement() {
                             <TableCell>
                                 <div className="flex items-center gap-2">
                                     <Switch
-                                        checked={!!user.isAdmin}
+                                        checked={!!isAdmin}
                                         onCheckedChange={(checked) => handleSetAdmin(user._id, checked)}
                                         disabled={isSelf}
                                     />
@@ -99,17 +102,17 @@ export default function UserManagement() {
                                 </div>
                             </TableCell>
                             <TableCell>
-                                {user.isBanned && <Badge variant="destructive">Banned</Badge>}
-                                {user.isAdmin && <Badge variant="default">Admin</Badge>}
+                                {isBanned && <Badge variant="destructive">Banned</Badge>}
+                                {isAdmin && <Badge variant="default">Admin</Badge>}
                             </TableCell>
                             <TableCell>
-                                {!user.isAdmin && !isSelf && (
+                                {!isAdmin && !isSelf && (
                                     <Button
                                         size="sm"
-                                        variant={user.isBanned ? "outline" : "destructive"}
-                                        onClick={() => handleBan(user._id, !user.isBanned)}
+                                        variant={isBanned ? "outline" : "destructive"}
+                                        onClick={() => handleBan(user._id, !isBanned)}
                                     >
-                                        {user.isBanned ? "Unban" : "Ban"}
+                                        {isBanned ? "Unban" : "Ban"}
                                     </Button>
                                 )}
                             </TableCell>

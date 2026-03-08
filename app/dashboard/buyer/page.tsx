@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useConvexAuth } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,14 @@ import MessageButton from "@/components/chat/MessageButton";
 import { Badge } from "@/components/ui/badge";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
 import { OffersSection } from "@/components/dashboard/OffersSection";
+import ProfileCompletenessCard from "@/components/dashboard/ProfileCompletenessCard";
 import { formatStatus } from "@/lib/utils";
 
 export default function BuyerDashboard() {
-    const { isAuthenticated } = useConvexAuth();
-    const requests = useQuery(api.tickets.listMyRequests, isAuthenticated ? {} : "skip");
-    const offers = useQuery(api.offers.listOffersForBuyer, isAuthenticated ? {} : "skip");
-    const upcomingCrashCourses = useQuery(api.crash_courses.getUpcoming, isAuthenticated ? {} : "skip");
+    const currentUser = useQuery(api.users.currentUser);
+    const requests = useQuery(api.tickets.listMyRequests, currentUser ? {} : "skip");
+    const offers = useQuery(api.offers.listOffersForBuyer, currentUser ? {} : "skip");
+    const upcomingCrashCourses = useQuery(api.crash_courses.getUpcoming, currentUser ? {} : "skip");
 
     if (requests === undefined || offers === undefined) {
         return (
@@ -113,6 +114,9 @@ export default function BuyerDashboard() {
                     </Link>
                 </div>
             </header>
+
+            {/* Profile Completeness */}
+            <ProfileCompletenessCard role="student" />
 
             {/* Hero KPI Section - Asymmetric Bento Grid */}
             <section className="grid grid-cols-12 gap-4 mb-10">

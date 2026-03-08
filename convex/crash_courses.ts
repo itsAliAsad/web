@@ -21,7 +21,17 @@ const APPLICATION_RATE_LIMIT = { windowMs: 300_000, maxRequests: 10 }; // 10 per
 export const create = mutation({
     args: {
         origin: v.union(v.literal("demand"), v.literal("supply")),
-        courseId: v.id("university_courses"),
+        courseId: v.optional(v.id("university_courses")),
+        category: v.optional(v.union(
+            v.literal("o_levels"),
+            v.literal("a_levels"),
+            v.literal("sat"),
+            v.literal("ib"),
+            v.literal("ap"),
+            v.literal("general"),
+        )),
+        customSubject: v.optional(v.string()), // free text for non-university topics
+        universityId: v.optional(v.id("universities")),
         title: v.string(),
         description: v.string(),
         topics: v.array(v.string()),
@@ -74,9 +84,14 @@ export const create = mutation({
             throw new Error("Rate limited: Too many crash courses created. Please wait.");
         }
 
-        // Get course details
-        const course = await ctx.db.get(args.courseId);
-        if (!course || !course.isActive) {
+        // Validate: must have either courseId or category
+        if (!args.courseId && !args.category) {
+            throw new Error("Either courseId or category must be provided");
+        }
+
+        // Get course details if university course
+        const course = args.courseId ? await ctx.db.get(args.courseId) : null;
+        if (args.courseId && (!course || !course.isActive)) {
             throw new Error("Course not found or inactive");
         }
 
@@ -105,7 +120,10 @@ export const create = mutation({
                 creatorId: user._id,
                 origin: "supply",
                 courseId: args.courseId,
-                department: course.department,
+                category: args.category,
+                customSubject: args.customSubject,
+                universityId: args.universityId,
+                department: course?.department,
                 title: args.title,
                 description: args.description,
                 topics: args.topics,
@@ -132,7 +150,10 @@ export const create = mutation({
                 creatorId: user._id,
                 origin: "demand",
                 courseId: args.courseId,
-                department: course.department,
+                category: args.category,
+                customSubject: args.customSubject,
+                universityId: args.universityId,
+                department: course?.department,
                 title: args.title,
                 description: args.description,
                 topics: args.topics,
@@ -961,7 +982,7 @@ export const get = query({
         if (!crashCourse || crashCourse.deletedAt) return null;
 
         const creator = await ctx.db.get(crashCourse.creatorId);
-        const course = await ctx.db.get(crashCourse.courseId);
+        const course = crashCourse.courseId ? await ctx.db.get(crashCourse.courseId) : null;
         const tutor = crashCourse.selectedTutorId
             ? await ctx.db.get(crashCourse.selectedTutorId)
             : null;
@@ -985,7 +1006,7 @@ export const get = query({
                     name: tutor.name,
                     image: tutor.image,
                     reputation: tutor.reputation,
-                    isVerified: tutor.isVerified,
+                    isVerified: tutor.verificationTier === "academic" || tutor.verificationTier === "expert",
                     isOnline: tutorProfile?.isOnline ?? false,
                 }
                 : null,
@@ -1000,6 +1021,14 @@ export const list = query({
     args: {
         origin: v.optional(v.union(v.literal("demand"), v.literal("supply"))),
         department: v.optional(v.string()),
+        category: v.optional(v.union(
+            v.literal("o_levels"),
+            v.literal("a_levels"),
+            v.literal("sat"),
+            v.literal("ib"),
+            v.literal("ap"),
+            v.literal("general"),
+        )),
         examType: v.optional(v.union(
             v.literal("quiz"),
             v.literal("midterm"),
@@ -1011,8 +1040,22 @@ export const list = query({
     handler: async (ctx, args) => {
         let results;
 
-        // Use department index if available
-        if (args.department && args.status) {
+        // Use category index when filtering by category
+        if (args.category && args.status) {
+            results = await ctx.db
+                .query("crash_courses")
+                .withIndex("by_category", (q) =>
+                    q.eq("category", args.category!).eq("status", args.status as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+                )
+                .collect();
+        } else if (args.category) {
+            results = await ctx.db
+                .query("crash_courses")
+                .withIndex("by_category", (q) =>
+                    q.eq("category", args.category!) as any
+                )
+                .collect();
+        } else if (args.department && args.status) {
             results = await ctx.db
                 .query("crash_courses")
                 .withIndex("by_department", (q) =>
@@ -1032,7 +1075,7 @@ export const list = query({
         if (args.origin) {
             results = results.filter((c) => c.origin === args.origin);
         }
-        if (args.department && !args.status) {
+        if (args.department && !args.category) {
             results = results.filter((c) => c.department === args.department);
         }
         if (args.examType) {
@@ -1047,7 +1090,7 @@ export const list = query({
         // Enrich with course info
         const enriched = await Promise.all(
             results.slice(0, 50).map(async (c) => {
-                const course = await ctx.db.get(c.courseId);
+                const course = c.courseId ? await ctx.db.get(c.courseId) : null;
                 const creator = await ctx.db.get(c.creatorId);
 
                 // Count applications for demand-side
@@ -1116,7 +1159,7 @@ export const listMy = query({
         // Enrich with course details
         const enriched = await Promise.all(
             allCourses.map(async (c) => {
-                const course = await ctx.db.get(c.courseId);
+                const course = c.courseId ? await ctx.db.get(c.courseId) : null;
                 return {
                     ...c,
                     course: course ? { code: course.code, name: course.name } : null,
@@ -1222,7 +1265,7 @@ export const getApplications = query({
                             name: tutor.name,
                             image: tutor.image,
                             reputation: tutor.reputation,
-                            isVerified: tutor.isVerified,
+                            isVerified: tutor.verificationTier === "academic" || tutor.verificationTier === "expert",
                             isOnline: tutorProfile?.isOnline ?? false,
                             completedJobs: completedOffers.length,
                             expertiseLevel,
@@ -1295,7 +1338,7 @@ export const getUpcoming = query({
                 course.scheduledAt &&
                 course.scheduledAt > Date.now() - 24 * 60 * 60 * 1000 // include courses from last 24h
             ) {
-                const uniCourse = await ctx.db.get(course.courseId);
+                const uniCourse = course.courseId ? await ctx.db.get(course.courseId) : null;
                 upcoming.push({
                     ...course,
                     course: uniCourse ? { code: uniCourse.code, name: uniCourse.name } : null,
@@ -1342,7 +1385,7 @@ export const search = query({
                 .filter((c) => !c.deletedAt && c.status !== "cancelled" && c.status !== "completed")
                 .slice(0, 20)
                 .map(async (c) => {
-                    const course = await ctx.db.get(c.courseId);
+                    const course = c.courseId ? await ctx.db.get(c.courseId) : null;
                     return {
                         ...c,
                         course: course ? { code: course.code, name: course.name } : null,

@@ -24,7 +24,17 @@ export const updateProfile = mutation({
     args: {
         bio: v.optional(v.string()),
         minRate: v.optional(v.number()),
-        allowedHelpTypes: v.optional(v.array(v.string())),
+        allowedHelpTypes: v.optional(v.array(v.union(
+            v.literal("debugging"),
+            v.literal("concept"),
+            v.literal("exam_prep"),
+            v.literal("review"),
+            v.literal("assignment"),
+            v.literal("project"),
+            v.literal("mentorship"),
+            v.literal("interview_prep"),
+            v.literal("other"),
+        ))),
         acceptingRequests: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {

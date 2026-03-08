@@ -1,5 +1,32 @@
 import { internalMutation } from "./_generated/server";
 
+/** Backfill required fields added in schema migration. Run once from the Convex dashboard. */
+export const migrateUsers = internalMutation({
+    handler: async (ctx) => {
+        const users = await ctx.db.query("users").collect();
+        let patched = 0;
+        for (const user of users) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const u = user as any;
+            const updates: Record<string, unknown> = {};
+            if (u.verificationTier === undefined) {
+                // Legacy: derive from old isVerified flag if it exists
+                updates.verificationTier = u.isVerified ? "academic" : "none";
+            }
+            if (u.ratingSum === undefined) updates.ratingSum = 0;
+            if (u.ratingCount === undefined) updates.ratingCount = 0;
+            if (u.marketingConsent === undefined) updates.marketingConsent = false;
+            if (Object.keys(updates).length > 0) {
+                await ctx.db.patch(user._id, updates);
+                patched++;
+            }
+        }
+        return { patched, total: users.length };
+    },
+});
+
+
+
 // Internal only - use from Convex dashboard
 export const seed = internalMutation({
     handler: async (ctx) => {
@@ -58,13 +85,12 @@ export const seed = internalMutation({
                     email: u.email,
                     tokenIdentifier: u.tokenIdentifier,
                     role: u.role,
-                    university: "LUMS",
+                    universityId: undefined,
                     reputation: 0,
                     ratingSum: 0,
                     ratingCount: 0,
-                    isVerified: true,
-                    isAdmin: false,
-                    isBanned: false,
+                    verificationTier: "academic" as const,
+                    marketingConsent: false,
                 });
 
                 if (u.role === "tutor") {
@@ -79,7 +105,7 @@ export const seed = internalMutation({
                             acceptingPaid: true,
                             acceptingFree: true,
                             minRate: 500,
-                            allowedHelpTypes: ["Debugging", "Concept"],
+                            allowedHelpTypes: ["debugging", "concept"] as const,
                         }
                     });
                 }

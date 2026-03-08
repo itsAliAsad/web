@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Search, Briefcase, ArrowRight, Sparkles, ChevronDown, X } from "lucide-react";
+import { Search, Briefcase, ArrowRight, Sparkles, ChevronDown, X, Globe, Building2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -18,6 +18,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Id } from "@/convex/_generated/dataModel";
 
 // Available departments  
 const DEPARTMENTS = [
@@ -43,15 +44,29 @@ export default function SearchPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [department, setDepartment] = useState<string>("all");
     const [helpType, setHelpType] = useState<string>("all");
+    const [showAll, setShowAll] = useState(false);
+
+    const currentUser = useQuery(api.users.currentUser);
+    const universityId = !showAll ? (currentUser?.universityId as Id<"universities"> | undefined) : undefined;
+
+    // Load university name for the scoping label
+    const university = useQuery(
+        api.universities.get,
+        universityId ? { id: universityId } : "skip"
+    );
 
     const searchResults = useQuery(api.tickets.search, {
         query: searchQuery,
         department: department === "all" ? undefined : department,
-        helpType: helpType === "all" ? undefined : helpType
+        helpType: helpType === "all" ? undefined : helpType,
+        universityId,
+        showAll,
     });
     const openRequests = useQuery(api.tickets.listOpen, {
         department: department === "all" ? undefined : department,
-        helpType: helpType === "all" ? undefined : helpType
+        helpType: helpType === "all" ? undefined : helpType,
+        universityId,
+        showAll,
     });
 
     const requests = searchQuery ? searchResults : openRequests;
@@ -90,6 +105,25 @@ export default function SearchPage() {
 
                 {/* Filters Row - Clean Dropdowns */}
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* University Scope Indicator */}
+                    {currentUser?.universityId && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAll(!showAll)}
+                            className={`h-10 rounded-full gap-2 border-foreground/10 backdrop-blur-sm transition-colors ${
+                                showAll
+                                    ? "bg-white/60 dark:bg-white/5 text-muted-foreground"
+                                    : "bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-400"
+                            }`}
+                        >
+                            {showAll ? (
+                                <><Globe className="h-3.5 w-3.5" /> All universities</>
+                            ) : (
+                                <><Building2 className="h-3.5 w-3.5" /> {university?.shortName?.toUpperCase() ?? "My university"}</>
+                            )}
+                        </Button>
+                    )}
                     {/* Department Dropdown */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

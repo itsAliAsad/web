@@ -308,7 +308,7 @@ export default function RequestDetailsPage() {
                                     </div>
                                     <div>
                                         <p className="font-semibold text-foreground">{request.student.name}</p>
-                                        <p className="text-sm text-muted-foreground">{request.student.university || "University Student"}</p>
+                                        <p className="text-sm text-muted-foreground">{request.student.universityName || "University Student"}</p>
                                     </div>
                                 </div>
 

@@ -3,6 +3,16 @@ import { v } from "convex/values";
 
 export default defineSchema({
     // ==========================================
+    // 0. UNIVERSITIES (Canonical list)
+    // ==========================================
+    universities: defineTable({
+        name: v.string(),        // "LUMS", "NUST", "IBA"
+        shortName: v.string(),   // "lums", "nust"
+        city: v.string(),        // "Lahore", "Islamabad"
+        isActive: v.boolean(),
+    }).searchIndex("search_university", { searchField: "name" }),
+
+    // ==========================================
     // 1. IDENTITY (Merged User Table)
     // ==========================================
     users: defineTable({
@@ -11,15 +21,31 @@ export default defineSchema({
         tokenIdentifier: v.string(), // Clerk ID
         image: v.optional(v.string()),
         bio: v.optional(v.string()),
-        university: v.optional(v.string()), // e.g. "LUMS"
+        universityId: v.optional(v.id("universities")),
+        teachingScope: v.optional(
+            v.array(
+                v.union(
+                    v.literal("university"),
+                    v.literal("o_levels"),
+                    v.literal("a_levels"),
+                    v.literal("sat"),
+                    v.literal("ib"),
+                    v.literal("ap"),
+                    v.literal("general"),
+                )
+            )
+        ),
+        verificationTier: v.union(
+            v.literal("none"),
+            v.literal("identity"),
+            v.literal("academic"),
+            v.literal("expert"),
+        ),
         reputation: v.number(), // Aggregated rating
-        ratingSum: v.optional(v.number()),
-        ratingCount: v.optional(v.number()),
+        ratingSum: v.number(),
+        ratingCount: v.number(),
         termsAcceptedAt: v.optional(v.string()),
         role: v.union(v.literal("student"), v.literal("tutor"), v.literal("admin")),
-        isVerified: v.optional(v.boolean()),
-        isAdmin: v.optional(v.boolean()),
-        isBanned: v.optional(v.boolean()),
         verifiedAt: v.optional(v.number()),
         verifiedBy: v.optional(v.id("users")),
 
@@ -49,8 +75,13 @@ export default defineSchema({
         bannedAt: v.optional(v.number()),
 
         // Communication
-        marketingConsent: v.optional(v.boolean()),
+        personalEmail: v.optional(v.string()), // Personal contact email (distinct from auth email)
+        whatsappNumber: v.optional(v.string()), // WhatsApp number for primary contact
+        marketingConsent: v.boolean(),
         marketingConsentUpdatedAt: v.optional(v.number()),
+
+        // Onboarding
+        onboardingCompletedAt: v.optional(v.number()),
 
         // Data Integrity
         deletedAt: v.optional(v.number()),
@@ -70,7 +101,17 @@ export default defineSchema({
             acceptingPaid: v.boolean(),
             acceptingFree: v.boolean(),
             minRate: v.number(),
-            allowedHelpTypes: v.array(v.string()), // ["Debugging", "Concept"]
+            allowedHelpTypes: v.array(v.union(
+                v.literal("debugging"),
+                v.literal("concept"),
+                v.literal("exam_prep"),
+                v.literal("review"),
+                v.literal("assignment"),
+                v.literal("project"),
+                v.literal("mentorship"),
+                v.literal("interview_prep"),
+                v.literal("other"),
+            )),
         }),
     }).index("by_user", ["userId"]),
 
@@ -82,18 +123,37 @@ export default defineSchema({
         name: v.string(), // "Intro to Computing"
         department: v.optional(v.string()),
         isActive: v.boolean(),
-    }).searchIndex("search_course", { searchField: "code" }),
+        universityId: v.optional(v.id("universities")), // null = shared/general
+    })
+        .searchIndex("search_course", { searchField: "code" })
+        .index("by_university", ["universityId"]),
 
     // ==========================================
     // 4. TUTOR OFFERINGS (Relationship Table)
     // ==========================================
     tutor_offerings: defineTable({
         tutorId: v.id("users"),
-        courseId: v.id("university_courses"),
-        level: v.string(), // "Beginner", "Intermediate"
+        courseId: v.optional(v.id("university_courses")), // for university courses
+        customSubject: v.optional(v.string()),           // for O-Level, SAT, etc.
+        category: v.union(
+            v.literal("university"),
+            v.literal("o_levels"),
+            v.literal("a_levels"),
+            v.literal("sat"),
+            v.literal("ib"),
+            v.literal("ap"),
+            v.literal("general"),
+        ),
+        universityId: v.optional(v.id("universities")),
+        level: v.union(
+            v.literal("beginner"),
+            v.literal("intermediate"),
+            v.literal("advanced"),
+        ),
     })
         .index("by_tutor", ["tutorId"])
-        .index("by_course", ["courseId"]),
+        .index("by_course", ["courseId"])
+        .index("by_tutor_and_category", ["tutorId", "category"]),
 
     // ==========================================
     // 5. TICKETS (REPLACES "requests")
@@ -106,10 +166,11 @@ export default defineSchema({
         customCategory: v.optional(v.string()), // "Mentorship", "Career Advice", "Project Help"
         // Denormalized for easy filtering
         department: v.optional(v.string()), // "CS", "MATH", etc.
+        universityId: v.optional(v.id("universities")), // scoping: null = open to all
         title: v.string(),
         description: v.string(),
         budget: v.optional(v.number()),
-        deadline: v.optional(v.string()),
+        deadline: v.optional(v.number()),
         status: v.union(
             v.literal("open"),
             v.literal("offering"),
@@ -119,7 +180,17 @@ export default defineSchema({
             v.literal("cancelled")
         ),
         urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-        helpType: v.string(), // "Debugging", "Exam Prep"
+        helpType: v.union(
+            v.literal("debugging"),
+            v.literal("concept"),
+            v.literal("exam_prep"),
+            v.literal("review"),
+            v.literal("assignment"),
+            v.literal("project"),
+            v.literal("mentorship"),
+            v.literal("interview_prep"),
+            v.literal("other"),
+        ),
         assignedTutorId: v.optional(v.id("users")),
         createdAt: v.number(),
         deletedAt: v.optional(v.number()),
@@ -129,6 +200,7 @@ export default defineSchema({
         .index("by_student", ["studentId"])
         .index("by_department", ["department", "status"])
         .index("by_student_and_tutor", ["studentId", "assignedTutorId"])
+        .index("by_university", ["universityId", "status"])
         .searchIndex("search_title_description", {
             searchField: "title",
             filterFields: ["helpType", "department", "customCategory"],
@@ -141,8 +213,18 @@ export default defineSchema({
         creatorId: v.id("users"),
         origin: v.union(v.literal("demand"), v.literal("supply")),
 
-        // Course linkage
-        courseId: v.id("university_courses"),
+        // Course linkage (optional for non-university categories)
+        courseId: v.optional(v.id("university_courses")),
+        category: v.optional(v.union(
+            v.literal("o_levels"),
+            v.literal("a_levels"),
+            v.literal("sat"),
+            v.literal("ib"),
+            v.literal("ap"),
+            v.literal("general"),
+        )),
+        customSubject: v.optional(v.string()), // free text for non-university topics
+        universityId: v.optional(v.id("universities")), // null = open to all
         department: v.optional(v.string()),
 
         // Content
@@ -198,6 +280,7 @@ export default defineSchema({
         .index("by_status", ["status"])
         .index("by_course", ["courseId"])
         .index("by_department", ["department", "status"])
+        .index("by_category", ["category", "status"])
         .index("by_creator", ["creatorId"])
         .index("by_tutor", ["selectedTutorId"])
         .searchIndex("search_crash_courses", {
@@ -259,7 +342,90 @@ export default defineSchema({
         .index("by_crash_course_and_student", ["crashCourseId", "studentId"]),
 
     // ==========================================
-    // 7. STUDY GROUPS
+    // 7. TUTOR CREDENTIALS
+    // ==========================================
+    tutor_credentials: defineTable({
+        tutorId: v.id("users"),
+
+        credentialType: v.union(
+            v.literal("o_level"),
+            v.literal("a_level"),
+            v.literal("sat"),
+            v.literal("ib"),
+            v.literal("ap"),
+            v.literal("university_transcript"),
+            v.literal("university_degree"),
+            v.literal("other_certificate")
+        ),
+
+        // O-Level / A-Level
+        candidateNumber: v.optional(v.string()),
+        examSession: v.optional(v.string()),
+        subjects: v.optional(v.array(v.object({
+            name: v.string(),
+            grade: v.string(),
+            level: v.optional(v.string()), // "AS" or "A2"
+        }))),
+
+        // SAT
+        satTotalScore: v.optional(v.number()),
+        satReadingWritingScore: v.optional(v.number()),
+        satMathScore: v.optional(v.number()),
+        satTestDate: v.optional(v.string()),
+
+        // IB
+        ibTotalPoints: v.optional(v.number()),
+        ibSubjects: v.optional(v.array(v.object({
+            name: v.string(),
+            level: v.union(v.literal("HL"), v.literal("SL")),
+            grade: v.number(),
+        }))),
+
+        // AP
+        apSubjects: v.optional(v.array(v.object({
+            name: v.string(),
+            score: v.number(),
+            year: v.string(),
+        }))),
+
+        // University
+        institutionName: v.optional(v.string()),
+        universityId: v.optional(v.id("universities")),
+        degreeTitle: v.optional(v.string()),
+        gpa: v.optional(v.number()),
+        gpaScale: v.optional(v.number()),
+        graduationYear: v.optional(v.number()),
+        currentSemester: v.optional(v.string()),
+
+        // Document proof (optional — tutor may skip upload)
+        storageId: v.optional(v.id("_storage")),
+        fileUrl: v.optional(v.string()),
+        fileName: v.optional(v.string()),
+        mimeType: v.optional(v.string()),
+
+        // Admin review
+        status: v.union(
+            v.literal("unsubmitted"), // structured data only, no doc
+            v.literal("pending"),
+            v.literal("in_review"),
+            v.literal("approved"),
+            v.literal("rejected"),
+            v.literal("needs_resubmit")
+        ),
+        reviewedBy: v.optional(v.id("users")),
+        reviewedAt: v.optional(v.number()),
+        rejectionReason: v.optional(v.string()),
+        adminNotes: v.optional(v.string()),
+
+        uploadedAt: v.number(),
+        isPubliclyVisible: v.boolean(),
+    })
+        .index("by_tutor", ["tutorId"])
+        .index("by_status", ["status"])
+        .index("by_tutor_and_type", ["tutorId", "credentialType"]),
+
+    // ==========================================
+    // 8. STUDY GROUPS
     // ==========================================
     study_groups: defineTable({
         hostId: v.id("users"),
@@ -267,7 +433,12 @@ export default defineSchema({
         title: v.string(),
         maxMembers: v.number(),
         currentMembers: v.number(),
-        status: v.string(),
+        status: v.union(
+            v.literal("active"),
+            v.literal("full"),
+            v.literal("completed"),
+            v.literal("cancelled"),
+        ),
         createdAt: v.number(),
     }).index("by_course", ["courseId"]),
 
@@ -277,7 +448,7 @@ export default defineSchema({
 
     offers: defineTable({
         ticketId: v.id("tickets"), // Updated from requestId
-        studentId: v.optional(v.id("users")), // Was buyerId
+        studentId: v.id("users"), // Was buyerId
         tutorId: v.id("users"), // Was sellerId
         price: v.number(),
         status: v.union(
@@ -299,6 +470,7 @@ export default defineSchema({
         crashCourseId: v.optional(v.id("crash_courses")), // Optional: for crash course reviews
         rating: v.number(), // 1-5
         comment: v.optional(v.string()),
+        createdAt: v.number(),
         type: v.union(
             v.literal("student_to_tutor"),
             v.literal("tutor_to_student"),
@@ -351,6 +523,8 @@ export default defineSchema({
             v.literal("crash_course_cancelled"),
             v.literal("crash_course_low_enrollment")
         ),
+        // TODO: Type this as a discriminated union keyed on `type` once all
+        // notification insert sites are updated to include a matching `data.type` field.
         data: v.any(),
         isRead: v.boolean(),
         createdAt: v.number(),
@@ -362,7 +536,15 @@ export default defineSchema({
         reporterId: v.id("users"),
         targetId: v.id("users"),
         ticketId: v.optional(v.id("tickets")), // Updated from requestId
-        reason: v.string(),
+        reason: v.union(
+            v.literal("spam"),
+            v.literal("harassment"),
+            v.literal("fake_credentials"),
+            v.literal("inappropriate_content"),
+            v.literal("no_show"),
+            v.literal("payment_dispute"),
+            v.literal("other"),
+        ),
         description: v.optional(v.string()),
         status: v.union(v.literal("pending"), v.literal("resolved"), v.literal("dismissed")),
         createdAt: v.number(),
@@ -399,7 +581,15 @@ export default defineSchema({
         actorId: v.optional(v.id("users")),
         action: v.string(),
         targetId: v.optional(v.id("users")),
-        targetType: v.optional(v.string()),
+        targetType: v.optional(v.union(
+            v.literal("user"),
+            v.literal("ticket"),
+            v.literal("crash_course"),
+            v.literal("tutor_credential"),
+            v.literal("offer"),
+            v.literal("review"),
+            v.literal("report"),
+        )),
         details: v.optional(v.any()),
         ipAddress: v.optional(v.string()),
         createdAt: v.number(),

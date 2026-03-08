@@ -46,7 +46,7 @@ export default function ReportDialog({ targetId, requestId }: ReportDialogProps)
             await createReport({
                 targetId,
                 ticketId: requestId, // Map prop to new field name
-                reason,
+                reason: reason as any,
                 description,
             });
             toast.success("Report submitted successfully");

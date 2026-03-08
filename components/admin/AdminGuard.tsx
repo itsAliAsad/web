@@ -10,13 +10,13 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     const router = useRouter();
 
     useEffect(() => {
-        if (user !== undefined && !user?.isAdmin) {
+        if (user !== undefined && user?.role !== "admin") {
             router.push("/");
         }
     }, [user, router]);
 
     if (user === undefined) return <div>Loading...</div>;
-    if (!user?.isAdmin) return null;
+    if (!user?.role || user.role !== "admin") return null;
 
     return <>{children}</>;
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Select,
     SelectContent,
@@ -17,16 +17,29 @@ import Link from "next/link";
 import CrashCourseCard from "@/components/crash-courses/CrashCourseCard";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const CATEGORIES = [
+    { value: "all", label: "All" },
+    { value: "university", label: "University" },
+    { value: "o_levels", label: "O-Level" },
+    { value: "a_levels", label: "A-Level" },
+    { value: "sat", label: "SAT" },
+    { value: "ib", label: "IB" },
+    { value: "ap", label: "AP" },
+    { value: "general", label: "General" },
+];
+
 export default function CrashCoursesPage() {
     const [tab, setTab] = useState("all");
     const [examType, setExamType] = useState<string>("all");
     const [department, setDepartment] = useState<string>("all");
+    const [category, setCategory] = useState<string>("all");
 
     // Main listing
     const allCourses = useQuery(api.crash_courses.list, {
         origin: tab === "requested" ? "demand" : tab === "offered" ? "supply" : undefined,
         examType: examType !== "all" ? (examType as any) : undefined,
         department: department !== "all" ? department : undefined,
+        category: category !== "all" ? category as any : undefined,
     });
 
     // My courses
@@ -35,7 +48,7 @@ export default function CrashCoursesPage() {
     const isLoading = tab === "mine" ? myCourses === undefined : allCourses === undefined;
     const courses = tab === "mine" ? myCourses : allCourses;
 
-    // Extract unique departments from results for filter
+    // Extract unique departments from results for filter (only relevant for university category)
     const departments = Array.from(
         new Set(
             (allCourses ?? [])
@@ -66,6 +79,23 @@ export default function CrashCoursesPage() {
                 </div>
             </header>
 
+            {/* Category Filter Chips */}
+            <div className="flex flex-wrap gap-2 mb-6">
+                {CATEGORIES.map((cat) => (
+                    <button
+                        key={cat.value}
+                        onClick={() => setCategory(cat.value)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                            category === cat.value
+                                ? "bg-foreground text-background border-foreground"
+                                : "bg-background/50 text-muted-foreground border-foreground/10 hover:border-foreground/30 hover:text-foreground"
+                        }`}
+                    >
+                        {cat.label}
+                    </button>
+                ))}
+            </div>
+
             {/* Tabs + Filters */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
                 <Tabs value={tab} onValueChange={setTab} className="flex-1">
@@ -88,7 +118,7 @@ export default function CrashCoursesPage() {
                     </TabsList>
                 </Tabs>
 
-                {tab !== "mine" && (
+                {tab !== "mine" && (category === "all" || category === "university") && (
                     <div className="flex items-center gap-3">
                         <Select value={examType} onValueChange={setExamType}>
                             <SelectTrigger className="w-[140px] rounded-full">

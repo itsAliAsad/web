@@ -134,7 +134,7 @@ export const listByTicket = query({
                 // Get course names (limit 3 for display)
                 const courseNames = await Promise.all(
                     allOfferings.slice(0, 3).map(async (offering) => {
-                        const course = await ctx.db.get(offering.courseId);
+                        const course = offering.courseId ? await ctx.db.get(offering.courseId) : null;
                         return course?.code;
                     })
                 );
@@ -144,7 +144,7 @@ export const listByTicket = query({
                 let hasRelatedCourses = false;
                 if (ticket.department) {
                     for (const offering of allOfferings) {
-                        const course = await ctx.db.get(offering.courseId);
+                        const course = offering.courseId ? await ctx.db.get(offering.courseId) : null;
                         if (course?.department === ticket.department) {
                             hasRelatedCourses = true;
                             break;
@@ -174,7 +174,7 @@ export const listByTicket = query({
                 if (hasRelatedCourses) matchPercent += 10;
 
                 // Verified status: +10%
-                if (tutor?.isVerified) matchPercent += 10;
+                if (tutor && (tutor.verificationTier === "academic" || tutor.verificationTier === "expert")) matchPercent += 10;
 
                 // Online status: online now +15%, active in 24h +8%
                 const now = Date.now();
@@ -203,7 +203,7 @@ export const listByTicket = query({
                     tutorId: offer.tutorId,
                     sellerName: tutor?.name, // Legacy alias
                     sellerId: offer.tutorId, // Legacy alias
-                    sellerIsVerified: Boolean(tutor?.isVerified),
+                    sellerIsVerified: tutor ? (tutor.verificationTier === "academic" || tutor.verificationTier === "expert") : false,
                     tutorBio: profile?.bio,
                     tutorLevel,
                     tutorCourses: validCourseNames,
@@ -242,7 +242,7 @@ export const listByRequest = query({
                     tutorId: offer.tutorId,
                     sellerName: tutor?.name,
                     sellerId: offer.tutorId,
-                    sellerIsVerified: Boolean(tutor?.isVerified),
+                    sellerIsVerified: Boolean(tutor && (tutor.verificationTier === "academic" || tutor.verificationTier === "expert")),
                 };
             })
         );

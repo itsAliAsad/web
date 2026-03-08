@@ -26,6 +26,19 @@ function isAllowedRoute(pathname: string): boolean {
     );
 }
 
+// Routes that should not trigger the onboarding redirect
+const ONBOARDING_EXEMPT_ROUTES = [
+    "/onboarding",
+    "/sign-in",
+    "/sign-up",
+];
+
+function isOnboardingExempt(pathname: string): boolean {
+    return ONBOARDING_EXEMPT_ROUTES.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+    );
+}
+
 export default function Template({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -37,6 +50,18 @@ export default function Template({ children }: { children: React.ReactNode }) {
         api.users.currentUser,
         isSignedIn ? {} : "skip"
     );
+
+    // Redirect to onboarding if user hasn't completed it yet
+    useEffect(() => {
+        if (!clerkLoaded || !isSignedIn) return;
+        if (user === undefined) return; // still loading
+        if (!user) return; // not in DB yet (UserSync in progress)
+        if (isOnboardingExempt(pathname)) return;
+
+        if (!user.onboardingCompletedAt && user.termsAcceptedAt) {
+            router.replace("/onboarding");
+        }
+    }, [clerkLoaded, isSignedIn, user, pathname, router]);
 
     useEffect(() => {
         // If launched, allow all routes
@@ -52,7 +77,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
         if (isSignedIn && user === undefined) return;
 
         // If user is admin, allow all routes
-        if (user?.isAdmin) return;
+        if (user?.role === "admin") return;
 
         // For all other internal routes, redirect to landing page
         if (!hasShownToast) {
